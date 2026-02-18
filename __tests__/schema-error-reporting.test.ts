@@ -43,7 +43,7 @@ types:
     const schema = await loadActionSchemaDefinition(actionPath)
     expect(schema).not.toBeNull()
     expect(schema?.types?.['validation-level']).toBeDefined()
-    
+
     const typeDef = schema?.types?.['validation-level']
     if (typeof typeDef !== 'string') {
       const options = typeDef?.options

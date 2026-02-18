@@ -60,7 +60,7 @@ inputs:
           - c
       - value: d
         description: this does Y
-        alternatives: [e, f]  # Inline array syntax
+        alternatives: [e, f] # Inline array syntax
       - g
 
   # Choice type with mixed simple and object options
@@ -108,7 +108,7 @@ inputs:
   # References 'versions' type but overrides its separator
   csv-versions:
     type: versions
-    separators: ","
+    separators: ','
 
   # Boolean type - accepts truthy/falsy values
   # Truthy: true, yes, y, 1, on

@@ -395,7 +395,7 @@ function validateSingleValueInput(
         !validateMatch(normalizedValue, inputSchema.match)
       ) {
         errors.push({
-          message: `Input '${inputName}' for action '${uses}' does not match required pattern: ${inputSchema.match}`,
+          message: `Input '${inputName}' for action '${uses}' has value '${normalizedValue}' which does not match required pattern: ${inputSchema.match}`,
           line,
           column: 1,
         })

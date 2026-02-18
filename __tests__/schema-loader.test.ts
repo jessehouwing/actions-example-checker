@@ -193,7 +193,7 @@ inputs:
 
     const schema = await loadActionSchemaDefinition(actionPath)
     expect(schema).not.toBeNull()
-    
+
     // Should fail when trying to resolve the unknown type reference
     const inputDef = schema?.inputs?.value
     if (typeof inputDef !== 'string') {
