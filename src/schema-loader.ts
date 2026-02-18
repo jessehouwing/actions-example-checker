@@ -244,6 +244,7 @@ export function resolveTypeDefinition(
   def: TypeDefinition | string,
   customTypes: Record<string, TypeDefinition>
 ): ResolvedTypeDefinition {
+  const baseTypes = ['boolean', 'number', 'string', 'choice', 'any']
   let baseTypeDef: TypeDefinition
   let overrides: Partial<TypeDefinition> = {}
 
@@ -256,7 +257,6 @@ export function resolveTypeDefinition(
     baseTypeDef = customType
   } else {
     // Check if def.type is a custom type reference (not a base type)
-    const baseTypes = ['boolean', 'number', 'string', 'choice', 'any']
     if (!baseTypes.includes(def.type)) {
       // def.type is a custom type reference
       const customType = customTypes[def.type]
@@ -279,7 +279,6 @@ export function resolveTypeDefinition(
 
   // Recursively resolve the base type if it's also a reference
   let resolvedBase: ResolvedTypeDefinition
-  const baseTypes = ['boolean', 'number', 'string', 'choice', 'any']
   if (!baseTypes.includes(baseTypeDef.type)) {
     // Base type is also a custom type reference, resolve it recursively
     resolvedBase = resolveTypeDefinition(baseTypeDef.type, customTypes)

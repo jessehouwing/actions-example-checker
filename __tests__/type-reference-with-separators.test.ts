@@ -76,7 +76,7 @@ types:
     match: '^v?\\d+(\\.\\d+)?(\\.\\d+)?$'
 
 inputs:
-  alternative-separator-override:
+  csv-versions:
     type: versions
     separators: ","
 `
@@ -85,7 +85,7 @@ inputs:
       const schema = await loadActionSchemaDefinition(actionPath)
       expect(schema).not.toBeNull()
 
-      const inputDef = schema?.inputs?.['alternative-separator-override']
+      const inputDef = schema?.inputs?.['csv-versions']
       if (typeof inputDef !== 'string') {
         expect(inputDef?.type).toBe('versions')
         expect(inputDef?.separators).toBe(',')

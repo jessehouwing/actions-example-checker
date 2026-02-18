@@ -38999,6 +38999,7 @@ function validateTypeDefinition(def) {
  * Resolve a type definition, handling custom type references
  */
 function resolveTypeDefinition(def, customTypes) {
+    const baseTypes = ['boolean', 'number', 'string', 'choice', 'any'];
     let baseTypeDef;
     let overrides = {};
     // If it's a string, it's a direct reference to a custom type
@@ -39011,7 +39012,6 @@ function resolveTypeDefinition(def, customTypes) {
     }
     else {
         // Check if def.type is a custom type reference (not a base type)
-        const baseTypes = ['boolean', 'number', 'string', 'choice', 'any'];
         if (!baseTypes.includes(def.type)) {
             // def.type is a custom type reference
             const customType = customTypes[def.type];
@@ -39034,7 +39034,6 @@ function resolveTypeDefinition(def, customTypes) {
     }
     // Recursively resolve the base type if it's also a reference
     let resolvedBase;
-    const baseTypes = ['boolean', 'number', 'string', 'choice', 'any'];
     if (!baseTypes.includes(baseTypeDef.type)) {
         // Base type is also a custom type reference, resolve it recursively
         resolvedBase = resolveTypeDefinition(baseTypeDef.type, customTypes);
