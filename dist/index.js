@@ -38894,7 +38894,12 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
                 // Match everything after "Options:" until we hit a period, semicolon, or "default:"
                 const optionsMatch = description.match(/(?:options?|choices?|valid values?):\s*([^.;]+?)(?:\.|;|,?\s*default:|\s*$)/i);
                 if (optionsMatch) {
-                    options = optionsMatch[1]
+                    // Strip surrounding brackets if present (e.g., "[error, warning]" -> "error, warning")
+                    let optionsText = optionsMatch[1].trim();
+                    if (optionsText.startsWith('[') && optionsText.endsWith(']')) {
+                        optionsText = optionsText.slice(1, -1);
+                    }
+                    options = optionsText
                         .split(/[,\s]+/)
                         .map((s) => s.trim().replace(/^['"`]|['"`]$/g, ''))
                         .filter((s) => s.length > 0);
