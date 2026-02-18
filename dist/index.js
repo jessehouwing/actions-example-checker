@@ -38871,43 +38871,14 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
         for (const [inputName, inputDef] of Object.entries(action.inputs)) {
             if (inputDef && typeof inputDef === 'object') {
                 const def = inputDef;
-                // Determine input type from description or type field
-                let inputType;
-                let options;
-                // Check for explicit type
-                if (typeof def.type === 'string') {
-                    inputType = def.type.toLowerCase();
-                }
-                // Parse description for type hints
+                // Parse description for example extraction
                 const description = typeof def.description === 'string' ? def.description : '';
                 // Collect description for example extraction
                 if (description) {
                     descriptions.push(description);
                 }
-                if (description.toLowerCase().includes('boolean')) {
-                    inputType = 'boolean';
-                }
-                else if (description.toLowerCase().includes('number')) {
-                    inputType = 'number';
-                }
-                // Check for options/enum in description
-                // Match everything after "Options:" until we hit a period, semicolon, or "default:"
-                const optionsMatch = description.match(/(?:options?|choices?|valid values?):\s*([^.;]+?)(?:\.|;|,?\s*default:|\s*$)/i);
-                if (optionsMatch) {
-                    // Strip surrounding brackets if present (e.g., "[error, warning]" -> "error, warning")
-                    let optionsText = optionsMatch[1].trim();
-                    if (optionsText.startsWith('[') && optionsText.endsWith(']')) {
-                        optionsText = optionsText.slice(1, -1);
-                    }
-                    options = optionsText
-                        .split(/[,\s]+/)
-                        .map((s) => s.trim().replace(/^['"`]|['"`]$/g, ''))
-                        .filter((s) => s.length > 0);
-                }
                 inputs.set(inputName, {
                     required: def.required === true || def.required === 'true',
-                    type: inputType,
-                    options,
                 });
             }
         }
@@ -43918,51 +43889,7 @@ function validateStep(step, schema, blockStartLine) {
             if (containsExpression(valueStr)) {
                 continue;
             }
-            // Validate input type
-            if (inputSchema.type) {
-                if (inputSchema.type === 'boolean') {
-                    // Boolean values can be: boolean (unquoted YAML: true/false) or string ('true'/'false')
-                    const isValidBoolean = typeof inputValue === 'boolean' ||
-                        (typeof inputValue === 'string' &&
-                            ['true', 'false'].includes(valueStr.toLowerCase()));
-                    if (!isValidBoolean) {
-                        const line = step.withLines?.get(inputName) ||
-                            blockStartLine + step.lineInBlock;
-                        errors.push({
-                            message: `Input '${inputName}' for action '${step.uses}' expects a boolean value, but got '${valueStr}'`,
-                            line,
-                            column: 1,
-                        });
-                    }
-                }
-                else if (inputSchema.type === 'number') {
-                    // Number values can be: number (unquoted YAML: 42) or string ('42')
-                    const isValidNumber = typeof inputValue === 'number' ||
-                        (typeof inputValue === 'string' && !isNaN(Number(valueStr)));
-                    if (!isValidNumber) {
-                        const line = step.withLines?.get(inputName) ||
-                            blockStartLine + step.lineInBlock;
-                        errors.push({
-                            message: `Input '${inputName}' for action '${step.uses}' expects a number value, but got '${valueStr}'`,
-                            line,
-                            column: 1,
-                        });
-                    }
-                }
-            }
-            // Validate input options
-            if (inputSchema.options && inputSchema.options.length > 0) {
-                const valueStr = String(inputValue);
-                if (!containsExpression(valueStr) &&
-                    !inputSchema.options.includes(valueStr)) {
-                    const line = step.withLines?.get(inputName) || blockStartLine + step.lineInBlock;
-                    errors.push({
-                        message: `Input '${inputName}' for action '${step.uses}' expects one of [${inputSchema.options.join(', ')}], but got '${valueStr}'`,
-                        line,
-                        column: 1,
-                    });
-                }
-            }
+            // Type and options validation removed as action.yaml schema doesn't support datatyping
         }
     }
     // Validate outputs (now handled separately by validateOutputReferences)
