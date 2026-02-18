@@ -56,6 +56,48 @@ describe('normalizeValue', () => {
     expect(normalizeValue('${{ null }}')).toBe('${{ null }}')
   })
 
+  it('should handle YAML literal values (outside expressions)', () => {
+    // YAML parses these as their native types, then we convert to string
+    
+    // Numbers from YAML
+    expect(normalizeValue(42)).toBe('42')
+    expect(normalizeValue(3.14)).toBe('3.14')
+    expect(normalizeValue(-9.2)).toBe('-9.2')
+    
+    // Booleans from YAML
+    expect(normalizeValue(true)).toBe('true')
+    expect(normalizeValue(false)).toBe('false')
+    
+    // Strings from YAML (already strings)
+    expect(normalizeValue('plain string')).toBe('plain string')
+    expect(normalizeValue('Mona the Octocat')).toBe('Mona the Octocat')
+    
+    // Single-quoted strings from YAML (quotes already removed by YAML parser)
+    expect(normalizeValue("It's quoted")).toBe("It's quoted")
+    
+    // Double-quoted strings from YAML (escape sequences already processed)
+    expect(normalizeValue('Line 1\nLine 2')).toBe('Line 1 Line 2') // \n becomes actual newline, then collapsed
+  })
+
+  it('should handle quoted literal values in YAML context', () => {
+    // When YAML values are quoted to prevent misinterpretation
+    // The YAML parser removes the outer quotes, we see the inner content
+    
+    // Version numbers that need quoting in YAML
+    expect(normalizeValue('1.0')).toBe('1.0')
+    expect(normalizeValue('2.0.1')).toBe('2.0.1')
+    
+    // Boolean-like strings that were quoted in YAML
+    expect(normalizeValue('yes')).toBe('yes')  // If quoted in YAML: 'yes'
+    expect(normalizeValue('no')).toBe('no')
+    expect(normalizeValue('on')).toBe('on')
+    expect(normalizeValue('off')).toBe('off')
+    
+    // Number-like strings that were quoted in YAML
+    expect(normalizeValue('07')).toBe('07')  // Octal-looking but quoted
+    expect(normalizeValue('0xFF')).toBe('0xFF')  // Hex-looking but quoted
+  })
+
   it('should handle all GitHub Actions literal expression formats', () => {
     // Null literal (case-sensitive)
     expect(normalizeValue('${{ null }}')).toBe('${{ null }}')
