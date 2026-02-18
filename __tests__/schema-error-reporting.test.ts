@@ -40,11 +40,11 @@ types:
     )
 
     await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-      /Choice option with value 'error' has invalid 'alternatives': expected an array of strings, but got an array with non-string elements\. Example: alternatives: \['option1', 'option2'\]/
+      /Choice option with value 'error' has invalid 'alternatives': array contains non-string elements/
     )
   })
 
-  it('should provide clear error message when alternatives is a scalar instead of array', async () => {
+  it('should accept single string value for alternatives (not an error)', async () => {
     const actionPath = path.join(testDir, 'action.yml')
     const schemaPath = path.join(testDir, 'action.schema.yml')
 
@@ -61,9 +61,9 @@ inputs:
 `
     )
 
-    await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-      /Choice option with value 'error' has invalid 'alternatives': expected an array of strings, but got string\. Example: alternatives: \['option1', 'option2'\]/
-    )
+    // Should NOT throw - single string is valid and will be normalized to array
+    const schema = await loadActionSchemaDefinition(actionPath)
+    expect(schema).not.toBeNull()
   })
 
   it('should provide correct format for valid alternatives', async () => {

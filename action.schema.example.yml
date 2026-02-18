@@ -42,6 +42,10 @@ inputs:
 
   # Choice type with descriptions and alternatives
   # Allows primary values (a, d) or their alternatives (b, c, e, f) or simple option (g)
+  # Alternatives support multiple formats:
+  #   - YAML array: alternatives:\n    - b\n    - c
+  #   - JSON/inline: alternatives: [b, c]
+  #   - Single value: alternatives: b
   with-options:
     type: choice
     options:
@@ -52,9 +56,7 @@ inputs:
           - c
       - value: d
         description: this does Y
-        alternatives:
-          - e
-          - f
+        alternatives: [e, f]  # Inline array syntax
       - g
 
   # Choice type with mixed simple and object options

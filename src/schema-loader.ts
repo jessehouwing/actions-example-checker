@@ -179,17 +179,31 @@ function validateTypeDefinition(def: unknown): TypeDefinition {
             )
           }
           if (choiceOpt.alternatives !== undefined) {
-            if (
-              !Array.isArray(choiceOpt.alternatives) ||
-              !choiceOpt.alternatives.every((alt) => typeof alt === 'string')
-            ) {
-              const actualType = Array.isArray(choiceOpt.alternatives)
-                ? 'an array with non-string elements'
-                : typeof choiceOpt.alternatives
+            // Normalize alternatives to array format
+            // Supports: single string, array of strings
+            let alternativesArray: string[]
+            if (typeof choiceOpt.alternatives === 'string') {
+              // Single value - convert to array
+              alternativesArray = [choiceOpt.alternatives]
+            } else if (Array.isArray(choiceOpt.alternatives)) {
+              // Already an array - validate all elements are strings
+              if (!choiceOpt.alternatives.every((alt) => typeof alt === 'string')) {
+                throw new Error(
+                  `Choice option with value '${choiceOpt.value}' has invalid 'alternatives': array contains non-string elements. All alternatives must be strings. Example: alternatives: ['option1', 'option2'] or alternatives: 'single-option'`
+                )
+              }
+              alternativesArray = choiceOpt.alternatives
+            } else {
               throw new Error(
-                `Choice option with value '${choiceOpt.value}' has invalid 'alternatives': expected an array of strings, but got ${actualType}. Example: alternatives: ['option1', 'option2']`
+                `Choice option with value '${choiceOpt.value}' has invalid 'alternatives': expected a string or array of strings, but got ${typeof choiceOpt.alternatives}. Example: alternatives: ['option1', 'option2'] or alternatives: 'single-option'`
               )
             }
+            
+            return {
+              value: choiceOpt.value,
+              description: choiceOpt.description as string | undefined,
+              alternatives: alternativesArray,
+            } as ChoiceOption
           }
           return {
             value: choiceOpt.value,

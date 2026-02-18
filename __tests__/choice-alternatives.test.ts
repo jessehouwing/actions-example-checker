@@ -240,7 +240,7 @@ inputs:
     )
   })
 
-  it('should throw error if alternatives is not an array', async () => {
+  it('should throw error if alternatives is an invalid type (number)', async () => {
     const actionPath = path.join(testDir, 'action.yml')
     const schemaPath = path.join(testDir, 'action.schema.yml')
 
@@ -253,12 +253,12 @@ inputs:
     type: choice
     options:
       - value: info
-        alternatives: notanarray
+        alternatives: 123
 `
     )
 
     await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-      /Choice option with value 'info' has invalid 'alternatives': expected an array of strings, but got string/
+      /Choice option with value 'info' has invalid 'alternatives': expected a string or array of strings, but got number/
     )
   })
 
@@ -282,7 +282,7 @@ inputs:
     )
 
     await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-      /Choice option with value 'info' has invalid 'alternatives': expected an array of strings, but got an array with non-string elements/
+      /Choice option with value 'info' has invalid 'alternatives': array contains non-string elements/
     )
   })
 
@@ -547,7 +547,7 @@ inputs:
   })
 
   describe('Error messages for invalid alternatives', () => {
-    it('should provide clear error when alternatives is not an array', async () => {
+    it('should provide clear error when alternatives is a boolean', async () => {
       const actionPath = path.join(testDir, 'action.yml')
       const schemaPath = path.join(testDir, 'action.schema.yml')
 
@@ -565,7 +565,7 @@ inputs:
       )
 
       await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-        /Choice option with value 'error' has invalid 'alternatives': expected an array of strings, but got boolean/
+        /Choice option with value 'error' has invalid 'alternatives': expected a string or array of strings, but got boolean/
       )
     })
 
@@ -589,8 +589,135 @@ inputs:
       )
 
       await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-        /Choice option with value 'warning' has invalid 'alternatives': expected an array of strings, but got an array with non-string elements/
+        /Choice option with value 'warning' has invalid 'alternatives': array contains non-string elements/
       )
+    })
+  })
+
+  describe('Alternative formats for alternatives field', () => {
+    it('should support single string value for alternatives', async () => {
+      const actionPath = path.join(testDir, 'action.yml')
+      const schemaPath = path.join(testDir, 'action.schema.yml')
+
+      await fs.writeFile(actionPath, 'name: Test\n')
+      await fs.writeFile(
+        schemaPath,
+        `
+inputs:
+  level:
+    type: choice
+    options:
+      - value: error
+        alternatives: enabled
+`
+      )
+
+      const schema = await loadActionSchemaDefinition(actionPath)
+      expect(schema).not.toBeNull()
+      const levelDef = schema?.inputs?.level
+      if (typeof levelDef !== 'string') {
+        expect(levelDef?.options).toHaveLength(1)
+        const option = levelDef?.options?.[0]
+        if (typeof option !== 'string') {
+          expect(option?.value).toBe('error')
+          expect(option?.alternatives).toEqual(['enabled'])
+        }
+      }
+    })
+
+    it('should support YAML array syntax for alternatives', async () => {
+      const actionPath = path.join(testDir, 'action.yml')
+      const schemaPath = path.join(testDir, 'action.schema.yml')
+
+      await fs.writeFile(actionPath, 'name: Test\n')
+      await fs.writeFile(
+        schemaPath,
+        `
+inputs:
+  level:
+    type: choice
+    options:
+      - value: error
+        alternatives:
+          - enabled
+          - on
+`
+      )
+
+      const schema = await loadActionSchemaDefinition(actionPath)
+      expect(schema).not.toBeNull()
+      const levelDef = schema?.inputs?.level
+      if (typeof levelDef !== 'string') {
+        const option = levelDef?.options?.[0]
+        if (typeof option !== 'string') {
+          expect(option?.alternatives).toEqual(['enabled', 'on'])
+        }
+      }
+    })
+
+    it('should support JSON/inline array syntax for alternatives', async () => {
+      const actionPath = path.join(testDir, 'action.yml')
+      const schemaPath = path.join(testDir, 'action.schema.yml')
+
+      await fs.writeFile(actionPath, 'name: Test\n')
+      await fs.writeFile(
+        schemaPath,
+        `
+inputs:
+  level:
+    type: choice
+    options:
+      - value: error
+        alternatives: [enabled, on]
+`
+      )
+
+      const schema = await loadActionSchemaDefinition(actionPath)
+      expect(schema).not.toBeNull()
+      const levelDef = schema?.inputs?.level
+      if (typeof levelDef !== 'string') {
+        const option = levelDef?.options?.[0]
+        if (typeof option !== 'string') {
+          expect(option?.alternatives).toEqual(['enabled', 'on'])
+        }
+      }
+    })
+
+    it('should normalize single string to array during resolution', async () => {
+      const actionPath = path.join(testDir, 'action.yml')
+      const schemaPath = path.join(testDir, 'action.schema.yml')
+
+      await fs.writeFile(actionPath, 'name: Test\n')
+      await fs.writeFile(
+        schemaPath,
+        `
+inputs:
+  level:
+    type: choice
+    options:
+      - value: error
+        alternatives: enabled
+      - value: warning
+        alternatives: [warn, caution]
+      - simple
+`
+      )
+
+      const schema = await loadActionSchemaDefinition(actionPath)
+      expect(schema).not.toBeNull()
+      const levelDef = schema?.inputs?.level
+      if (typeof levelDef !== 'string') {
+        const resolved = resolveTypeDefinition(levelDef, {})
+        // Should flatten: error, enabled, warning, warn, caution, simple
+        expect(resolved.options).toEqual([
+          'error',
+          'enabled',
+          'warning',
+          'warn',
+          'caution',
+          'simple',
+        ])
+      }
     })
   })
 })
