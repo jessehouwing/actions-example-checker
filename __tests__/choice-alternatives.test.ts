@@ -258,7 +258,7 @@ inputs:
     )
 
     await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-      "Choice option 'alternatives' must be an array of strings if provided"
+      /Choice option with value 'info' has invalid 'alternatives': expected an array of strings, but got string/
     )
   })
 
@@ -282,7 +282,7 @@ inputs:
     )
 
     await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-      "Choice option 'alternatives' must be an array of strings if provided"
+      /Choice option with value 'info' has invalid 'alternatives': expected an array of strings, but got an array with non-string elements/
     )
   })
 
@@ -544,5 +544,53 @@ inputs:
         'simple2',
       ])
     }
+  })
+
+  describe('Error messages for invalid alternatives', () => {
+    it('should provide clear error when alternatives is not an array', async () => {
+      const actionPath = path.join(testDir, 'action.yml')
+      const schemaPath = path.join(testDir, 'action.schema.yml')
+
+      await fs.writeFile(actionPath, 'name: Test\n')
+      await fs.writeFile(
+        schemaPath,
+        `
+inputs:
+  level:
+    type: choice
+    options:
+      - value: error
+        alternatives: true
+`
+      )
+
+      await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
+        /Choice option with value 'error' has invalid 'alternatives': expected an array of strings, but got boolean/
+      )
+    })
+
+    it('should provide clear error when alternatives contains non-strings', async () => {
+      const actionPath = path.join(testDir, 'action.yml')
+      const schemaPath = path.join(testDir, 'action.schema.yml')
+
+      await fs.writeFile(actionPath, 'name: Test\n')
+      await fs.writeFile(
+        schemaPath,
+        `
+inputs:
+  level:
+    type: choice
+    options:
+      - value: warning
+        alternatives:
+          - valid
+          - 123
+`
+      )
+
+      await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
+        /Choice option with value 'warning' has invalid 'alternatives': expected an array of strings, but got an array with non-string elements/
+      )
+    })
   })
 })

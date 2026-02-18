@@ -3,6 +3,11 @@ import path from 'node:path'
 import * as yaml from 'yaml'
 
 /**
+ * Base type constants
+ */
+const BASE_TYPES = ['boolean', 'number', 'string', 'choice', 'any'] as const
+
+/**
  * Choice option with optional description and alternatives
  */
 export interface ChoiceOption {
@@ -140,8 +145,7 @@ function validateTypeDefinition(def: unknown): TypeDefinition {
     type: type,
   }
 
-  const baseTypes = ['boolean', 'number', 'string', 'choice', 'any']
-  const isBaseType = baseTypes.includes(type)
+  const isBaseType = BASE_TYPES.includes(type as any)
 
   // Validate match for string type (only enforce for base types)
   if (typeDef.match && typeof typeDef.match === 'string') {
@@ -179,8 +183,11 @@ function validateTypeDefinition(def: unknown): TypeDefinition {
               !Array.isArray(choiceOpt.alternatives) ||
               !choiceOpt.alternatives.every((alt) => typeof alt === 'string')
             ) {
+              const actualType = Array.isArray(choiceOpt.alternatives)
+                ? 'an array with non-string elements'
+                : typeof choiceOpt.alternatives
               throw new Error(
-                `Choice option 'alternatives' must be an array of strings if provided`
+                `Choice option with value '${choiceOpt.value}' has invalid 'alternatives': expected an array of strings, but got ${actualType}. Example: alternatives: ['option1', 'option2']`
               )
             }
           }
@@ -244,7 +251,6 @@ export function resolveTypeDefinition(
   def: TypeDefinition | string,
   customTypes: Record<string, TypeDefinition>
 ): ResolvedTypeDefinition {
-  const baseTypes = ['boolean', 'number', 'string', 'choice', 'any']
   let baseTypeDef: TypeDefinition
   let overrides: Partial<TypeDefinition> = {}
 
@@ -257,7 +263,7 @@ export function resolveTypeDefinition(
     baseTypeDef = customType
   } else {
     // Check if def.type is a custom type reference (not a base type)
-    if (!baseTypes.includes(def.type)) {
+    if (!BASE_TYPES.includes(def.type as any)) {
       // def.type is a custom type reference
       const customType = customTypes[def.type]
       if (!customType) {
@@ -265,12 +271,11 @@ export function resolveTypeDefinition(
       }
       // Use the custom type as base, but allow overrides from def
       baseTypeDef = customType
-      overrides = {
-        match: def.match,
-        options: def.options,
-        separators: def.separators,
-        items: def.items,
-      }
+      // Only include properties that are actually defined to avoid explicit undefined values
+      if (def.match !== undefined) overrides.match = def.match
+      if (def.options !== undefined) overrides.options = def.options
+      if (def.separators !== undefined) overrides.separators = def.separators
+      if (def.items !== undefined) overrides.items = def.items
     } else {
       // def.type is a base type, use def as-is
       baseTypeDef = def
@@ -279,7 +284,7 @@ export function resolveTypeDefinition(
 
   // Recursively resolve the base type if it's also a reference
   let resolvedBase: ResolvedTypeDefinition
-  if (!baseTypes.includes(baseTypeDef.type)) {
+  if (!BASE_TYPES.includes(baseTypeDef.type as any)) {
     // Base type is also a custom type reference, resolve it recursively
     resolvedBase = resolveTypeDefinition(baseTypeDef.type, customTypes)
   } else {
@@ -326,11 +331,11 @@ export function resolveTypeDefinition(
   }
 
   // Apply overrides (from the original def when it had a custom type in its type field)
-  if (overrides.match) {
+  if (overrides.match !== undefined) {
     resolvedBase.match = compileRegex(overrides.match)
   }
 
-  if (overrides.options) {
+  if (overrides.options !== undefined) {
     resolvedBase.options = []
     for (const opt of overrides.options) {
       if (typeof opt === 'string') {
@@ -354,7 +359,7 @@ export function resolveTypeDefinition(
   }
 
   // Override items if specified
-  if (overrides.items) {
+  if (overrides.items !== undefined) {
     resolvedBase.items = resolveTypeDefinition(overrides.items, customTypes)
   }
 

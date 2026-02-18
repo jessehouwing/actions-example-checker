@@ -38836,6 +38836,10 @@ function requireDist () {
 var distExports = requireDist();
 
 /**
+ * Base type constants
+ */
+const BASE_TYPES = ['boolean', 'number', 'string', 'choice', 'any'];
+/**
  * Load and parse an action.schema.yml file if it exists
  */
 async function loadActionSchemaDefinition(actionFilePath) {
@@ -38915,8 +38919,7 @@ function validateTypeDefinition(def) {
     const result = {
         type: type,
     };
-    const baseTypes = ['boolean', 'number', 'string', 'choice', 'any'];
-    const isBaseType = baseTypes.includes(type);
+    const isBaseType = BASE_TYPES.includes(type);
     // Validate match for string type (only enforce for base types)
     if (typeDef.match && typeof typeDef.match === 'string') {
         if (isBaseType && result.type !== 'string') {
@@ -38947,7 +38950,10 @@ function validateTypeDefinition(def) {
                     if (choiceOpt.alternatives !== undefined) {
                         if (!Array.isArray(choiceOpt.alternatives) ||
                             !choiceOpt.alternatives.every((alt) => typeof alt === 'string')) {
-                            throw new Error(`Choice option 'alternatives' must be an array of strings if provided`);
+                            const actualType = Array.isArray(choiceOpt.alternatives)
+                                ? 'an array with non-string elements'
+                                : typeof choiceOpt.alternatives;
+                            throw new Error(`Choice option with value '${choiceOpt.value}' has invalid 'alternatives': expected an array of strings, but got ${actualType}. Example: alternatives: ['option1', 'option2']`);
                         }
                     }
                     return {
@@ -38999,7 +39005,6 @@ function validateTypeDefinition(def) {
  * Resolve a type definition, handling custom type references
  */
 function resolveTypeDefinition(def, customTypes) {
-    const baseTypes = ['boolean', 'number', 'string', 'choice', 'any'];
     let baseTypeDef;
     let overrides = {};
     // If it's a string, it's a direct reference to a custom type
@@ -39012,7 +39017,7 @@ function resolveTypeDefinition(def, customTypes) {
     }
     else {
         // Check if def.type is a custom type reference (not a base type)
-        if (!baseTypes.includes(def.type)) {
+        if (!BASE_TYPES.includes(def.type)) {
             // def.type is a custom type reference
             const customType = customTypes[def.type];
             if (!customType) {
@@ -39020,12 +39025,15 @@ function resolveTypeDefinition(def, customTypes) {
             }
             // Use the custom type as base, but allow overrides from def
             baseTypeDef = customType;
-            overrides = {
-                match: def.match,
-                options: def.options,
-                separators: def.separators,
-                items: def.items,
-            };
+            // Only include properties that are actually defined to avoid explicit undefined values
+            if (def.match !== undefined)
+                overrides.match = def.match;
+            if (def.options !== undefined)
+                overrides.options = def.options;
+            if (def.separators !== undefined)
+                overrides.separators = def.separators;
+            if (def.items !== undefined)
+                overrides.items = def.items;
         }
         else {
             // def.type is a base type, use def as-is
@@ -39034,7 +39042,7 @@ function resolveTypeDefinition(def, customTypes) {
     }
     // Recursively resolve the base type if it's also a reference
     let resolvedBase;
-    if (!baseTypes.includes(baseTypeDef.type)) {
+    if (!BASE_TYPES.includes(baseTypeDef.type)) {
         // Base type is also a custom type reference, resolve it recursively
         resolvedBase = resolveTypeDefinition(baseTypeDef.type, customTypes);
     }
@@ -39079,10 +39087,10 @@ function resolveTypeDefinition(def, customTypes) {
         resolvedBase.items = resolveTypeDefinition(baseTypeDef.items, customTypes);
     }
     // Apply overrides (from the original def when it had a custom type in its type field)
-    if (overrides.match) {
+    if (overrides.match !== undefined) {
         resolvedBase.match = compileRegex(overrides.match);
     }
-    if (overrides.options) {
+    if (overrides.options !== undefined) {
         resolvedBase.options = [];
         for (const opt of overrides.options) {
             if (typeof opt === 'string') {
@@ -39106,7 +39114,7 @@ function resolveTypeDefinition(def, customTypes) {
         }
     }
     // Override items if specified
-    if (overrides.items) {
+    if (overrides.items !== undefined) {
         resolvedBase.items = resolveTypeDefinition(overrides.items, customTypes);
     }
     return resolvedBase;
@@ -44791,7 +44799,8 @@ async function run() {
             }
         }
         catch (error) {
-            warning(`Failed to load action schema from ${actionFile}: ${error instanceof Error ? error.message : String(error)}`);
+            setFailed(`Failed to load action schema from ${actionFile}: ${error instanceof Error ? error.message : String(error)}`);
+            return; // Exit early on schema loading failure
         }
     }
     if (schemas.size === 0) {
