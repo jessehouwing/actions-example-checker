@@ -38840,6 +38840,27 @@ var distExports = requireDist();
  */
 const BASE_TYPES = ['boolean', 'number', 'string', 'choice', 'any'];
 /**
+ * Convert a value to string for use in alternatives
+ * Accepts: string, number, boolean, null, undefined
+ * Returns the string representation
+ */
+function convertToString(value) {
+    if (value === null) {
+        return 'null';
+    }
+    if (value === undefined) {
+        return 'undefined';
+    }
+    if (typeof value === 'string') {
+        return value;
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+    }
+    // For any other type, convert to string representation
+    return String(value);
+}
+/**
  * Load and parse an action.schema.yml file if it exists
  */
 async function loadActionSchemaDefinition(actionFilePath) {
@@ -38949,21 +38970,15 @@ function validateTypeDefinition(def) {
                     }
                     if (choiceOpt.alternatives !== undefined) {
                         // Normalize alternatives to array format
-                        // Supports: single string, array of strings
+                        // Supports: single value (string, number, boolean, null, undefined) or array of such values
                         let alternativesArray;
-                        if (typeof choiceOpt.alternatives === 'string') {
-                            // Single value - convert to array
-                            alternativesArray = [choiceOpt.alternatives];
-                        }
-                        else if (Array.isArray(choiceOpt.alternatives)) {
-                            // Already an array - validate all elements are strings
-                            if (!choiceOpt.alternatives.every((alt) => typeof alt === 'string')) {
-                                throw new Error(`Choice option with value '${choiceOpt.value}' has invalid 'alternatives': array contains non-string elements. All alternatives must be strings. Example: alternatives: ['option1', 'option2'] or alternatives: 'single-option'`);
-                            }
-                            alternativesArray = choiceOpt.alternatives;
+                        if (Array.isArray(choiceOpt.alternatives)) {
+                            // Already an array - convert all elements to strings
+                            alternativesArray = choiceOpt.alternatives.map((alt) => convertToString(alt));
                         }
                         else {
-                            throw new Error(`Choice option with value '${choiceOpt.value}' has invalid 'alternatives': expected a string or array of strings, but got ${typeof choiceOpt.alternatives}. Example: alternatives: ['option1', 'option2'] or alternatives: 'single-option'`);
+                            // Single value - convert to string and wrap in array
+                            alternativesArray = [convertToString(choiceOpt.alternatives)];
                         }
                         return {
                             value: choiceOpt.value,

@@ -46,6 +46,10 @@ inputs:
   #   - YAML array: alternatives:\n    - b\n    - c
   #   - JSON/inline: alternatives: [b, c]
   #   - Single value: alternatives: b
+  # Alternatives accept any scalar type (string, number, boolean, null) and convert to string:
+  #   - alternatives: true → ['true']
+  #   - alternatives: 123 → ['123']
+  #   - alternatives: [true, 1, enabled] → ['true', '1', 'enabled']
   with-options:
     type: choice
     options:

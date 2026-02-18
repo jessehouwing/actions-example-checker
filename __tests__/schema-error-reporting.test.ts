@@ -14,7 +14,7 @@ describe('Schema Error Reporting', () => {
     await fs.rm(testDir, { recursive: true, force: true })
   })
 
-  it('should provide clear error message for alternatives with boolean value', async () => {
+  it('should accept boolean values in alternatives and convert to strings', async () => {
     const actionPath = path.join(testDir, 'action.yml')
     const schemaPath = path.join(testDir, 'action.schema.yml')
 
@@ -39,9 +39,23 @@ types:
 `
     )
 
-    await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-      /Choice option with value 'error' has invalid 'alternatives': array contains non-string elements/
-    )
+    // Should NOT throw - booleans are now accepted and converted to strings
+    const schema = await loadActionSchemaDefinition(actionPath)
+    expect(schema).not.toBeNull()
+    expect(schema?.types?.['validation-level']).toBeDefined()
+    
+    const typeDef = schema?.types?.['validation-level']
+    if (typeof typeDef !== 'string') {
+      const options = typeDef?.options
+      expect(options).toBeDefined()
+      if (options) {
+        const firstOption = options[0]
+        if (typeof firstOption !== 'string') {
+          // The boolean true should be converted to the string 'true'
+          expect(firstOption?.alternatives).toEqual(['true'])
+        }
+      }
+    }
   })
 
   it('should accept single string value for alternatives (not an error)', async () => {

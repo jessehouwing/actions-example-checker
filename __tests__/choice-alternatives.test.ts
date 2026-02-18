@@ -240,7 +240,7 @@ inputs:
     )
   })
 
-  it('should throw error if alternatives is an invalid type (number)', async () => {
+  it('should accept and convert number in alternatives', async () => {
     const actionPath = path.join(testDir, 'action.yml')
     const schemaPath = path.join(testDir, 'action.schema.yml')
 
@@ -257,12 +257,18 @@ inputs:
 `
     )
 
-    await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-      /Choice option with value 'info' has invalid 'alternatives': expected a string or array of strings, but got number/
-    )
+    const schema = await loadActionSchemaDefinition(actionPath)
+    expect(schema).not.toBeNull()
+    const levelDef = schema?.inputs?.level
+    if (typeof levelDef !== 'string') {
+      const option = levelDef?.options?.[0]
+      if (typeof option !== 'string') {
+        expect(option?.alternatives).toEqual(['123'])
+      }
+    }
   })
 
-  it('should throw error if alternatives contains non-strings', async () => {
+  it('should accept and convert numbers in alternatives array', async () => {
     const actionPath = path.join(testDir, 'action.yml')
     const schemaPath = path.join(testDir, 'action.schema.yml')
 
@@ -281,9 +287,15 @@ inputs:
 `
     )
 
-    await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-      /Choice option with value 'info' has invalid 'alternatives': array contains non-string elements/
-    )
+    const schema = await loadActionSchemaDefinition(actionPath)
+    expect(schema).not.toBeNull()
+    const levelDef = schema?.inputs?.level
+    if (typeof levelDef !== 'string') {
+      const option = levelDef?.options?.[0]
+      if (typeof option !== 'string') {
+        expect(option?.alternatives).toEqual(['warn', '123'])
+      }
+    }
   })
 
   it('should flatten alternatives when resolving type definition', () => {
@@ -546,8 +558,8 @@ inputs:
     }
   })
 
-  describe('Error messages for invalid alternatives', () => {
-    it('should provide clear error when alternatives is a boolean', async () => {
+  describe('Type coercion for alternatives', () => {
+    it('should accept and convert boolean to string', async () => {
       const actionPath = path.join(testDir, 'action.yml')
       const schemaPath = path.join(testDir, 'action.schema.yml')
 
@@ -564,12 +576,18 @@ inputs:
 `
       )
 
-      await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-        /Choice option with value 'error' has invalid 'alternatives': expected a string or array of strings, but got boolean/
-      )
+      const schema = await loadActionSchemaDefinition(actionPath)
+      expect(schema).not.toBeNull()
+      const levelDef = schema?.inputs?.level
+      if (typeof levelDef !== 'string') {
+        const option = levelDef?.options?.[0]
+        if (typeof option !== 'string') {
+          expect(option?.alternatives).toEqual(['true'])
+        }
+      }
     })
 
-    it('should provide clear error when alternatives contains non-strings', async () => {
+    it('should accept and convert numbers in mixed array', async () => {
       const actionPath = path.join(testDir, 'action.yml')
       const schemaPath = path.join(testDir, 'action.schema.yml')
 
@@ -588,9 +606,15 @@ inputs:
 `
       )
 
-      await expect(loadActionSchemaDefinition(actionPath)).rejects.toThrow(
-        /Choice option with value 'warning' has invalid 'alternatives': array contains non-string elements/
-      )
+      const schema = await loadActionSchemaDefinition(actionPath)
+      expect(schema).not.toBeNull()
+      const levelDef = schema?.inputs?.level
+      if (typeof levelDef !== 'string') {
+        const option = levelDef?.options?.[0]
+        if (typeof option !== 'string') {
+          expect(option?.alternatives).toEqual(['valid', '123'])
+        }
+      }
     })
   })
 
