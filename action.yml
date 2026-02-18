@@ -1,4 +1,4 @@
-name: GitHub Actions Example Checker
+name: Actions Example Checker
 description: Validate examples in documentation against action.yml schemas
 author: Jesse Houwing
 branding:
