@@ -9,6 +9,7 @@ A GitHub Action that validates examples in documentation against your action's s
 
 - 🔍 **Automatic Action Discovery**: Finds all `action.yml` and `action.yaml` files in your repository
 - 📝 **Documentation Validation**: Scans markdown files for YAML code blocks containing action usage examples
+- 📋 **Description Examples**: Validates YAML examples embedded in action.yml descriptions (root and input descriptions)
 - ✅ **Input Validation**: Checks that all inputs used in examples are defined in the action schema
 - 🔢 **Type Checking**: Validates input types (boolean, number) when specified
 - 🎯 **Value Validation**: Checks that input values match allowed options when specified
@@ -96,7 +97,9 @@ Both will be validated against the same `action.yml` schema from your repository
    - Output names
    - Required/optional status
    - Alternative names (fork and parent repository names)
-4. **Documentation Scanning**: Markdown files are scanned for YAML code blocks (marked with ` ```yaml ` or ` ```yml `)
+4. **Documentation Scanning**:
+   - Scans markdown files for YAML code blocks (marked with ` ```yaml ` or ` ```yml `)
+   - Extracts YAML code blocks from action.yml descriptions (root and input descriptions)
 5. **Example Validation**: For each code block containing action usage (identified by `uses: owner/repo@version`):
    - Validates that all `with:` inputs are defined in the action schema
    - Checks input types (boolean, number) when specified
@@ -179,6 +182,57 @@ This action validates its own documentation! Here's a valid example:
     docs-pattern: '**/*.md'
 ```
 
+## Validation Sources
+
+The action validates YAML examples from multiple sources:
+
+### 1. Markdown Files
+
+Examples in `*.md` files are validated:
+
+````markdown
+# Usage
+
+```yaml
+- uses: owner/action@v1
+  with:
+    input: value
+```
+````
+
+### 2. Action.yml Descriptions
+
+Examples in `action.yml` descriptions are also validated:
+
+````yaml
+name: My Action
+description: |-
+  Example usage:
+  ```yaml
+  - uses: owner/my-action@v1
+    with:
+      mode: standard
+````
+
+inputs:
+auth-type:
+description: |-
+Authentication type
+
+      Setup example:
+      ```yaml
+      - uses: azure/login@v2
+        with:
+          client-id: abc
+      - uses: owner/my-action@v1
+        with:
+          auth-type: oidc
+      ```
+
+````
+
+This ensures that examples in your action.yml file are always correct and up-to-date.
+
 ## Advanced Syntax Support
 
 The action supports various YAML syntax features commonly used in GitHub Actions:
@@ -193,7 +247,7 @@ Trailing comments are supported and stripped before validation:
   with:
     environment: production # deployment target
     debug: true # enable debugging
-```
+````
 
 Comments inside quoted strings are preserved:
 

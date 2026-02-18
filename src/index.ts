@@ -109,6 +109,9 @@ export async function run(): Promise<void> {
     return
   }
 
+  let totalErrors = 0
+  let filesChecked = 0
+
   // Validate examples in action.yml descriptions
   for (const [actionRef, schema] of schemas.entries()) {
     // Only validate once per unique schema (not for alternative names)
@@ -168,8 +171,6 @@ export async function run(): Promise<void> {
   // Find all markdown files
   const markdownFiles = await findMarkdownFiles(repositoryPath, docsPattern)
   core.info(`Found ${markdownFiles.length} documentation file(s)`)
-
-  let filesChecked = 0
 
   // Validate each markdown file
   for (const markdownFile of markdownFiles) {
