@@ -63,7 +63,12 @@ function containsNonLiteralExpression(value: string): boolean {
     
     // Check if it's a literal expression
     // Literals include: strings ('...' or "..."), numbers, booleans (true/false), null
-    const isLiteral = /^(['"].*['"]|true|false|null|\d+\.?\d*)$/i.test(expression)
+    // Match single-quoted strings, double-quoted strings, or other literal values
+    const isSingleQuoted = /^'[^']*'$/.test(expression)
+    const isDoubleQuoted = /^"[^"]*"$/.test(expression)
+    const isOtherLiteral = /^(true|false|null|\d+\.?\d*)$/i.test(expression)
+    
+    const isLiteral = isSingleQuoted || isDoubleQuoted || isOtherLiteral
     
     if (!isLiteral) {
       // Non-literal expression found
