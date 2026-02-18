@@ -328,6 +328,28 @@ describe('validateStep', () => {
     expect(errors).toHaveLength(0)
   })
 
+  it('should accept unquoted number values in YAML', () => {
+    const schema: ActionSchema = {
+      actionReference: 'owner/repo',
+      alternativeNames: [],
+      inputs: new Map([['count', { required: false, type: 'number' }]]),
+      outputs: new Set(),
+      sourceFile: 'action.yml',
+      descriptions: [],
+    }
+
+    const yaml = `
+- uses: owner/repo@v1
+  with:
+    count: 42
+`
+    const schemas = new Map([['owner/repo', schema]])
+    const steps = findReferencedSteps(yaml, schemas)
+    const errors = validateStep(steps[0], schema, 1)
+
+    expect(errors).toHaveLength(0)
+  })
+
   it('should validate input options', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',

@@ -43941,9 +43941,23 @@ function validateStep(step, schema, blockStartLine) {
                         });
                     }
                 }
-                else if (inputSchema.type === 'number' &&
-                    typeof inputValue === 'string') {
-                    if (isNaN(Number(valueStr))) {
+                else if (inputSchema.type === 'number') {
+                    // Accept number values directly (from unquoted YAML: 42)
+                    if (typeof inputValue === 'number') ;
+                    else if (typeof inputValue === 'string') {
+                        // Accept string representations: '42'
+                        if (isNaN(Number(valueStr))) {
+                            const line = step.withLines?.get(inputName) ||
+                                blockStartLine + step.lineInBlock;
+                            errors.push({
+                                message: `Input '${inputName}' for action '${step.uses}' expects a number value, but got '${valueStr}'`,
+                                line,
+                                column: 1,
+                            });
+                        }
+                    }
+                    else {
+                        // Invalid type (e.g., boolean, object)
                         const line = step.withLines?.get(inputName) ||
                             blockStartLine + step.lineInBlock;
                         errors.push({
