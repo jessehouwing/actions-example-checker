@@ -39155,9 +39155,14 @@ function resolveTypeDefinition(def, customTypes) {
         (resolvedBase.match || resolvedBase.options)) {
         resolvedBase.items = {
             type: resolvedBase.type,
-            match: resolvedBase.match,
-            options: resolvedBase.options,
         };
+        // Only copy properties that are actually defined
+        if (resolvedBase.match !== undefined) {
+            resolvedBase.items.match = resolvedBase.match;
+        }
+        if (resolvedBase.options !== undefined) {
+            resolvedBase.items.options = resolvedBase.options;
+        }
     }
     return resolvedBase;
 }
