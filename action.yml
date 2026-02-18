@@ -1,0 +1,30 @@
+name: GitHub Actions Example Checker
+description: Validate examples in documentation against action.yml schemas
+author: Jesse Houwing
+branding:
+  icon: check-circle
+  color: blue
+
+inputs:
+  repository-path:
+    description: Path to the repository root (defaults to current directory)
+    required: false
+    default: .
+  action-pattern:
+    description: Glob pattern to find action files (e.g., **/action.{yml,yaml})
+    required: false
+    default: '**/action.{yml,yaml}'
+  docs-pattern:
+    description: Glob pattern to find documentation files (e.g., **/*.md)
+    required: false
+    default: '**/*.md'
+
+outputs:
+  errors-found:
+    description: Number of validation errors found
+  files-checked:
+    description: Number of documentation files checked
+
+runs:
+  using: node24
+  main: dist/index.js
