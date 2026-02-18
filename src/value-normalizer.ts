@@ -62,13 +62,22 @@ function containsNonLiteralExpression(value: string): boolean {
     const expression = match[1].trim()
     
     // Check if it's a literal expression
-    // Literals include: strings ('...' or "..."), numbers, booleans (true/false), null
-    // Match single-quoted strings, double-quoted strings, or other literal values
-    const isSingleQuoted = /^'[^']*'$/.test(expression)
-    const isDoubleQuoted = /^"[^"]*"$/.test(expression)
-    const isOtherLiteral = /^(true|false|null|\d+\.?\d*)$/i.test(expression)
+    // Literals include: strings ('...' or "..."), numbers (including negative, hex, exponential), booleans (true/false), null
     
-    const isLiteral = isSingleQuoted || isDoubleQuoted || isOtherLiteral
+    // Match single-quoted strings with escaped quotes support ('It''s open source!' where '' escapes to ')
+    const isSingleQuoted = /^'(?:[^']|'')*'$/.test(expression)
+    
+    // Match double-quoted strings with escaped quotes support
+    const isDoubleQuoted = /^"(?:[^"\\]|\\.)*"$/.test(expression)
+    
+    // Match numbers: supports negative, decimal, hex (0x/0X), and exponential notation
+    // Examples: 711, -9.2, 0xff, -2.99e-2, 1.5e10
+    const isNumber = /^-?(?:0x[0-9a-fA-F]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)$/i.test(expression)
+    
+    // Match booleans and null
+    const isBooleanOrNull = /^(true|false|null)$/i.test(expression)
+    
+    const isLiteral = isSingleQuoted || isDoubleQuoted || isNumber || isBooleanOrNull
     
     if (!isLiteral) {
       // Non-literal expression found

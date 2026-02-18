@@ -56,6 +56,39 @@ describe('normalizeValue', () => {
     expect(normalizeValue('${{ null }}')).toBe('${{ null }}')
   })
 
+  it('should handle all GitHub Actions literal expression formats', () => {
+    // Null literal
+    expect(normalizeValue('${{ null }}')).toBe('${{ null }}')
+    
+    // Boolean literals
+    expect(normalizeValue('${{ false }}')).toBe('${{ false }}')
+    expect(normalizeValue('${{ true }}')).toBe('${{ true }}')
+    
+    // Integer number
+    expect(normalizeValue('${{ 711 }}')).toBe('${{ 711 }}')
+    
+    // Negative float number
+    expect(normalizeValue('${{ -9.2 }}')).toBe('${{ -9.2 }}')
+    
+    // Hex number (lowercase)
+    expect(normalizeValue('${{ 0xff }}')).toBe('${{ 0xff }}')
+    
+    // Hex number (uppercase)
+    expect(normalizeValue('${{ 0xFF }}')).toBe('${{ 0xFF }}')
+    
+    // Exponential notation
+    expect(normalizeValue('${{ -2.99e-2 }}')).toBe('${{ -2.99e-2 }}')
+    expect(normalizeValue('${{ 1.5e10 }}')).toBe('${{ 1.5e10 }}')
+    expect(normalizeValue('${{ 2E5 }}')).toBe('${{ 2E5 }}')
+    
+    // String with escaped single quotes ('' escapes to ')
+    expect(normalizeValue("${{ 'It''s open source!' }}")).toBe("${{ 'It''s open source!' }}")
+    
+    // Regular string literals
+    expect(normalizeValue("${{ 'Mona the Octocat' }}")).toBe("${{ 'Mona the Octocat' }}")
+    expect(normalizeValue('${{ "double quoted" }}')).toBe('${{ "double quoted" }}')
+  })
+
   it('should handle null and undefined', () => {
     expect(normalizeValue(null)).toBeNull()
     expect(normalizeValue(undefined)).toBeNull()
