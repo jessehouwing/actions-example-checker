@@ -44492,8 +44492,9 @@ function validateStep(step, schema, blockStartLine) {
         for (const [inputName, inputValue] of Object.entries(step.with)) {
             const inputSchema = schema.inputs.get(inputName);
             if (!inputSchema) {
-                const line = step.withLines?.get(inputName)
-                    ? blockStartLine + step.withLines.get(inputName) - 1
+                const inputLine = step.withLines?.get(inputName);
+                const line = inputLine
+                    ? blockStartLine + inputLine - 1
                     : blockStartLine + step.lineInBlock - 1;
                 errors.push({
                     message: `Unknown input '${inputName}' for action '${step.uses}' (schema: ${schema.sourceFile})`,
@@ -44502,8 +44503,9 @@ function validateStep(step, schema, blockStartLine) {
                 });
                 continue;
             }
-            const line = step.withLines?.get(inputName)
-                ? blockStartLine + step.withLines.get(inputName) - 1
+            const inputLine = step.withLines?.get(inputName);
+            const line = inputLine
+                ? blockStartLine + inputLine - 1
                 : blockStartLine + step.lineInBlock - 1;
             // Check if this is a multi-value input
             if (inputSchema.items && inputSchema.separators) {
