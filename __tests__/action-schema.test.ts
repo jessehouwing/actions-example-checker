@@ -159,6 +159,31 @@ inputs:
     expect(schema.inputs.get('enabled')?.type).toBe('boolean')
   })
 
+  it('should extract options with square brackets', async () => {
+    const actionYml = `
+name: Test Action
+inputs:
+  check-level:
+    description: 'Check level (options: [error, warning, none, true, false], default: error).'
+    required: false
+  auto-fix:
+    description: 'Auto-fix enabled (options: [true, false], default: false).'
+    required: false
+`
+    const actionPath = path.join(testDir, 'action.yml')
+    await fs.writeFile(actionPath, actionYml)
+
+    const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
+
+    const checkLevelOptions = schema.inputs.get('check-level')?.options
+    expect(checkLevelOptions).toBeDefined()
+    expect(checkLevelOptions).toEqual(['error', 'warning', 'none', 'true', 'false'])
+
+    const autoFixOptions = schema.inputs.get('auto-fix')?.options
+    expect(autoFixOptions).toBeDefined()
+    expect(autoFixOptions).toEqual(['true', 'false'])
+  })
+
   it('should handle subdirectory actions', async () => {
     const subDir = path.join(testDir, 'sub', 'action')
     await fs.mkdir(subDir, { recursive: true })
