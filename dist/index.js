@@ -43916,22 +43916,11 @@ function validateStep(step, schema, blockStartLine) {
             // Validate input type
             if (inputSchema.type) {
                 if (inputSchema.type === 'boolean') {
-                    // Accept boolean values directly (from unquoted YAML: true/false)
-                    if (typeof inputValue === 'boolean') ;
-                    else if (typeof inputValue === 'string') {
-                        // Accept string representations: 'true', 'false' (case-insensitive)
-                        if (!['true', 'false'].includes(valueStr.toLowerCase())) {
-                            const line = step.withLines?.get(inputName) ||
-                                blockStartLine + step.lineInBlock;
-                            errors.push({
-                                message: `Input '${inputName}' for action '${step.uses}' expects a boolean value, but got '${valueStr}'`,
-                                line,
-                                column: 1,
-                            });
-                        }
-                    }
-                    else {
-                        // Invalid type (e.g., number, object)
+                    // Boolean values can be: boolean (unquoted YAML: true/false) or string ('true'/'false')
+                    const isValidBoolean = typeof inputValue === 'boolean' ||
+                        (typeof inputValue === 'string' &&
+                            ['true', 'false'].includes(valueStr.toLowerCase()));
+                    if (!isValidBoolean) {
                         const line = step.withLines?.get(inputName) ||
                             blockStartLine + step.lineInBlock;
                         errors.push({
@@ -43942,22 +43931,10 @@ function validateStep(step, schema, blockStartLine) {
                     }
                 }
                 else if (inputSchema.type === 'number') {
-                    // Accept number values directly (from unquoted YAML: 42)
-                    if (typeof inputValue === 'number') ;
-                    else if (typeof inputValue === 'string') {
-                        // Accept string representations: '42'
-                        if (isNaN(Number(valueStr))) {
-                            const line = step.withLines?.get(inputName) ||
-                                blockStartLine + step.lineInBlock;
-                            errors.push({
-                                message: `Input '${inputName}' for action '${step.uses}' expects a number value, but got '${valueStr}'`,
-                                line,
-                                column: 1,
-                            });
-                        }
-                    }
-                    else {
-                        // Invalid type (e.g., boolean, object)
+                    // Number values can be: number (unquoted YAML: 42) or string ('42')
+                    const isValidNumber = typeof inputValue === 'number' ||
+                        (typeof inputValue === 'string' && !isNaN(Number(valueStr)));
+                    if (!isValidNumber) {
                         const line = step.withLines?.get(inputName) ||
                             blockStartLine + step.lineInBlock;
                         errors.push({
