@@ -38891,7 +38891,8 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
                     inputType = 'number';
                 }
                 // Check for options/enum in description
-                const optionsMatch = description.match(/(?:options?|choices?|valid values?):\s*([^.]+)/i);
+                // Match everything after "Options:" until we hit a period, semicolon, or "default:"
+                const optionsMatch = description.match(/(?:options?|choices?|valid values?):\s*([^.;]+?)(?:\.|;|,?\s*default:|\s*$)/i);
                 if (optionsMatch) {
                     options = optionsMatch[1]
                         .split(/[,\s]+/)
@@ -43913,9 +43914,24 @@ function validateStep(step, schema, blockStartLine) {
                 continue;
             }
             // Validate input type
-            if (inputSchema.type && typeof inputValue === 'string') {
+            if (inputSchema.type) {
                 if (inputSchema.type === 'boolean') {
-                    if (!['true', 'false'].includes(valueStr.toLowerCase())) {
+                    // Accept boolean values directly (from unquoted YAML: true/false)
+                    if (typeof inputValue === 'boolean') ;
+                    else if (typeof inputValue === 'string') {
+                        // Accept string representations: 'true', 'false' (case-insensitive)
+                        if (!['true', 'false'].includes(valueStr.toLowerCase())) {
+                            const line = step.withLines?.get(inputName) ||
+                                blockStartLine + step.lineInBlock;
+                            errors.push({
+                                message: `Input '${inputName}' for action '${step.uses}' expects a boolean value, but got '${valueStr}'`,
+                                line,
+                                column: 1,
+                            });
+                        }
+                    }
+                    else {
+                        // Invalid type (e.g., number, object)
                         const line = step.withLines?.get(inputName) ||
                             blockStartLine + step.lineInBlock;
                         errors.push({
@@ -43925,7 +43941,8 @@ function validateStep(step, schema, blockStartLine) {
                         });
                     }
                 }
-                else if (inputSchema.type === 'number') {
+                else if (inputSchema.type === 'number' &&
+                    typeof inputValue === 'string') {
                     if (isNaN(Number(valueStr))) {
                         const line = step.withLines?.get(inputName) ||
                             blockStartLine + step.lineInBlock;

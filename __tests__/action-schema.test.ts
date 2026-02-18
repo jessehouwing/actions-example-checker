@@ -113,6 +113,52 @@ inputs:
     expect(options).toContain('error')
   })
 
+  it('should extract options and stop at default keyword', async () => {
+    const actionYml = `
+name: Test Action
+inputs:
+  debug:
+    description: 'Enable debug mode. Options: true, false, default: false'
+    required: false
+  environment:
+    description: 'Target environment. Options: dev, prod. Default is dev'
+    required: false
+`
+    const actionPath = path.join(testDir, 'action.yml')
+    await fs.writeFile(actionPath, actionYml)
+
+    const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
+
+    const debugOptions = schema.inputs.get('debug')?.options
+    expect(debugOptions).toBeDefined()
+    expect(debugOptions).toEqual(['true', 'false'])
+    expect(debugOptions).not.toContain('default:')
+
+    const envOptions = schema.inputs.get('environment')?.options
+    expect(envOptions).toBeDefined()
+    expect(envOptions).toEqual(['dev', 'prod'])
+    expect(envOptions).not.toContain('Default')
+  })
+
+  it('should extract boolean options correctly', async () => {
+    const actionYml = `
+name: Test Action
+inputs:
+  enabled:
+    description: 'Feature flag. Options: true, false'
+    type: boolean
+`
+    const actionPath = path.join(testDir, 'action.yml')
+    await fs.writeFile(actionPath, actionYml)
+
+    const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
+
+    const options = schema.inputs.get('enabled')?.options
+    expect(options).toBeDefined()
+    expect(options).toEqual(['true', 'false'])
+    expect(schema.inputs.get('enabled')?.type).toBe('boolean')
+  })
+
   it('should handle subdirectory actions', async () => {
     const subDir = path.join(testDir, 'sub', 'action')
     await fs.mkdir(subDir, { recursive: true })

@@ -82,8 +82,9 @@ export async function loadActionSchema(
         }
 
         // Check for options/enum in description
+        // Match everything after "Options:" until we hit a period, semicolon, or "default:"
         const optionsMatch = description.match(
-          /(?:options?|choices?|valid values?):\s*([^.]+)/i
+          /(?:options?|choices?|valid values?):\s*([^.;]+?)(?:\.|;|,?\s*default:|\s*$)/i
         )
         if (optionsMatch) {
           options = optionsMatch[1]

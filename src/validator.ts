@@ -298,9 +298,25 @@ export function validateStep(
       }
 
       // Validate input type
-      if (inputSchema.type && typeof inputValue === 'string') {
+      if (inputSchema.type) {
         if (inputSchema.type === 'boolean') {
-          if (!['true', 'false'].includes(valueStr.toLowerCase())) {
+          // Accept boolean values directly (from unquoted YAML: true/false)
+          if (typeof inputValue === 'boolean') {
+            // Valid - unquoted boolean in YAML
+          } else if (typeof inputValue === 'string') {
+            // Accept string representations: 'true', 'false' (case-insensitive)
+            if (!['true', 'false'].includes(valueStr.toLowerCase())) {
+              const line =
+                step.withLines?.get(inputName) ||
+                blockStartLine + step.lineInBlock
+              errors.push({
+                message: `Input '${inputName}' for action '${step.uses}' expects a boolean value, but got '${valueStr}'`,
+                line,
+                column: 1,
+              })
+            }
+          } else {
+            // Invalid type (e.g., number, object)
             const line =
               step.withLines?.get(inputName) ||
               blockStartLine + step.lineInBlock
@@ -310,7 +326,10 @@ export function validateStep(
               column: 1,
             })
           }
-        } else if (inputSchema.type === 'number') {
+        } else if (
+          inputSchema.type === 'number' &&
+          typeof inputValue === 'string'
+        ) {
           if (isNaN(Number(valueStr))) {
             const line =
               step.withLines?.get(inputName) ||
