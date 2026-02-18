@@ -30134,7 +30134,7 @@ function create(patterns, options) {
 /**
  * Find all action.yml/action.yaml files in the repository
  */
-async function findActionFiles(repositoryPath, pattern) {
+async function findActionFiles(repositoryPath, _pattern) {
     const patterns = [
         path$1.join(repositoryPath, 'action.yml'),
         path$1.join(repositoryPath, 'action.yaml'),

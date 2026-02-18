@@ -6,7 +6,7 @@ import path from 'node:path'
  */
 export async function findActionFiles(
   repositoryPath: string,
-  pattern: string
+  _pattern: string
 ): Promise<string[]> {
   const patterns = [
     path.join(repositoryPath, 'action.yml'),
