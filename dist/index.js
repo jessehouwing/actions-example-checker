@@ -38844,7 +38844,7 @@ async function loadActionSchemaDefinition(actionFilePath) {
     // Try both .yml and .yaml extensions
     const schemaFiles = [
         path$1.join(actionDir, `${actionBaseName}.schema.yml`),
-        path$1.join(actionDir, `${actionBaseName}.schema.yaml`)
+        path$1.join(actionDir, `${actionBaseName}.schema.yaml`),
     ];
     for (const schemaFile of schemaFiles) {
         try {
@@ -38916,7 +38916,7 @@ function validateTypeDefinition(def) {
         throw new Error(`Invalid type: ${type}. Must be one of: boolean, number, string, choice`);
     }
     const result = {
-        type: type
+        type: type,
     };
     // Validate match for string type
     if (typeDef.match && typeof typeDef.match === 'string') {
@@ -38935,7 +38935,8 @@ function validateTypeDefinition(def) {
         }
     }
     // Ensure choice type has options
-    if (result.type === 'choice' && (!result.options || result.options.length === 0)) {
+    if (result.type === 'choice' &&
+        (!result.options || result.options.length === 0)) {
         throw new Error(`choice type requires options array`);
     }
     return result;
@@ -38953,7 +38954,7 @@ function resolveTypeDefinition(def, customTypes) {
         def = customType;
     }
     const resolved = {
-        type: def.type
+        type: def.type,
     };
     // Compile regex pattern if present
     if (def.match) {
@@ -43956,7 +43957,7 @@ function unindent(str) {
     }
     // Remove minimum indentation from all lines
     return lines
-        .map(line => {
+        .map((line) => {
         if (line.trim().length === 0) {
             return '';
         }
@@ -44261,9 +44262,11 @@ function validateStep(step, schema, blockStartLine) {
                         });
                     }
                 }
-                else if (inputSchema.type === 'choice' || inputSchema.type === 'string') {
+                else if (inputSchema.type === 'choice' ||
+                    inputSchema.type === 'string') {
                     // Validate match pattern for string type
-                    if (inputSchema.match && !validateMatch(normalizedValue, inputSchema.match)) {
+                    if (inputSchema.match &&
+                        !validateMatch(normalizedValue, inputSchema.match)) {
                         const line = step.withLines?.get(inputName) ||
                             blockStartLine + step.lineInBlock;
                         errors.push({
@@ -44290,7 +44293,8 @@ function validateStep(step, schema, blockStartLine) {
                 // No type specified, check options anyway if present (backward compatibility)
                 if (inputSchema.options && inputSchema.options.length > 0) {
                     if (!inputSchema.options.includes(normalizedValue)) {
-                        const line = step.withLines?.get(inputName) || blockStartLine + step.lineInBlock;
+                        const line = step.withLines?.get(inputName) ||
+                            blockStartLine + step.lineInBlock;
                         errors.push({
                             message: `Input '${inputName}' for action '${step.uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
                             line,

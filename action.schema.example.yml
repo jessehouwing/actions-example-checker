@@ -7,13 +7,13 @@ types:
   # URL type validates http/https URLs
   url:
     type: string
-    match: "^https?://.*"
-  
+    match: '^https?://.*'
+
   # Semantic version format (e.g., 1.2.3)
   semver:
     type: string
     match: "^\\d+\\.\\d+\\.\\d+$"
-  
+
   # Email address validation
   email:
     type: string
@@ -28,30 +28,30 @@ inputs:
       - development
       - staging
       - production
-  
+
   # Reference to custom type
   api-url:
     type: url
-  
+
   # Another custom type reference
   version:
     type: semver
-  
+
   # Boolean type - accepts truthy/falsy values
   # Truthy: true, yes, y, 1, on
   # Falsy: false, no, n, 0, off, (empty)
   dry-run:
     type: boolean
-  
+
   # Number type
   timeout:
     type: number
-  
+
   # String with inline pattern (not a custom type)
   log-level:
     type: string
-    match: "^(debug|info|warn|error)$"
-  
+    match: '^(debug|info|warn|error)$'
+
   # Email using custom type
   notification-email:
     type: email
@@ -60,9 +60,9 @@ inputs:
 outputs:
   deployment-id:
     type: string
-  
+
   deployment-url:
     type: url
-  
+
   exit-code:
     type: number

@@ -300,7 +300,7 @@ export function validateStep(
 
       // Normalize the value for validation
       const normalizedValue = normalizeValue(inputValue)
-      
+
       // Skip validation for expressions or null (non-literal expressions)
       if (normalizedValue === null || containsExpression(String(inputValue))) {
         continue
@@ -310,7 +310,7 @@ export function validateStep(
       if (inputSchema.type) {
         if (inputSchema.type === 'boolean') {
           const boolValue = normalizeBoolean(inputValue)
-          
+
           if (boolValue === null) {
             const line =
               step.withLines?.get(inputName) ||
@@ -323,7 +323,7 @@ export function validateStep(
           }
         } else if (inputSchema.type === 'number') {
           const numValue = normalizeNumber(inputValue)
-          
+
           if (numValue === null) {
             const line =
               step.withLines?.get(inputName) ||
@@ -334,9 +334,15 @@ export function validateStep(
               column: 1,
             })
           }
-        } else if (inputSchema.type === 'choice' || inputSchema.type === 'string') {
+        } else if (
+          inputSchema.type === 'choice' ||
+          inputSchema.type === 'string'
+        ) {
           // Validate match pattern for string type
-          if (inputSchema.match && !validateMatch(normalizedValue, inputSchema.match)) {
+          if (
+            inputSchema.match &&
+            !validateMatch(normalizedValue, inputSchema.match)
+          ) {
             const line =
               step.withLines?.get(inputName) ||
               blockStartLine + step.lineInBlock
@@ -346,7 +352,7 @@ export function validateStep(
               column: 1,
             })
           }
-          
+
           // Validate options for choice type
           if (inputSchema.options && inputSchema.options.length > 0) {
             if (!inputSchema.options.includes(normalizedValue)) {
@@ -366,7 +372,8 @@ export function validateStep(
         if (inputSchema.options && inputSchema.options.length > 0) {
           if (!inputSchema.options.includes(normalizedValue)) {
             const line =
-              step.withLines?.get(inputName) || blockStartLine + step.lineInBlock
+              step.withLines?.get(inputName) ||
+              blockStartLine + step.lineInBlock
             errors.push({
               message: `Input '${inputName}' for action '${step.uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
               line,

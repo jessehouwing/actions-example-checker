@@ -36,12 +36,15 @@ export async function loadActionSchemaDefinition(
   actionFilePath: string
 ): Promise<ActionSchemaDefinition | null> {
   const actionDir = path.dirname(actionFilePath)
-  const actionBaseName = path.basename(actionFilePath, path.extname(actionFilePath))
-  
+  const actionBaseName = path.basename(
+    actionFilePath,
+    path.extname(actionFilePath)
+  )
+
   // Try both .yml and .yaml extensions
   const schemaFiles = [
     path.join(actionDir, `${actionBaseName}.schema.yml`),
-    path.join(actionDir, `${actionBaseName}.schema.yaml`)
+    path.join(actionDir, `${actionBaseName}.schema.yaml`),
   ]
 
   for (const schemaFile of schemaFiles) {
@@ -117,14 +120,16 @@ function validateSchemaDefinition(
  */
 function validateTypeDefinition(def: unknown): TypeDefinition {
   const typeDef = def as Record<string, unknown>
-  
+
   const type = String(typeDef.type || 'string').toLowerCase()
   if (!['boolean', 'number', 'string', 'choice'].includes(type)) {
-    throw new Error(`Invalid type: ${type}. Must be one of: boolean, number, string, choice`)
+    throw new Error(
+      `Invalid type: ${type}. Must be one of: boolean, number, string, choice`
+    )
   }
 
   const result: TypeDefinition = {
-    type: type as 'boolean' | 'number' | 'string' | 'choice'
+    type: type as 'boolean' | 'number' | 'string' | 'choice',
   }
 
   // Validate match for string type
@@ -146,7 +151,10 @@ function validateTypeDefinition(def: unknown): TypeDefinition {
   }
 
   // Ensure choice type has options
-  if (result.type === 'choice' && (!result.options || result.options.length === 0)) {
+  if (
+    result.type === 'choice' &&
+    (!result.options || result.options.length === 0)
+  ) {
     throw new Error(`choice type requires options array`)
   }
 
@@ -170,7 +178,7 @@ export function resolveTypeDefinition(
   }
 
   const resolved: ResolvedTypeDefinition = {
-    type: def.type
+    type: def.type,
   }
 
   // Compile regex pattern if present

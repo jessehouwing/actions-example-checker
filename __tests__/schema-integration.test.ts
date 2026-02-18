@@ -108,7 +108,9 @@ outputs:
     const invalidEnvSteps = findReferencedSteps(invalidEnvYaml, schemas)
     const invalidEnvErrors = validateStep(invalidEnvSteps[0], schema, 1)
     expect(invalidEnvErrors.length).toBeGreaterThan(0)
-    expect(invalidEnvErrors[0].message).toContain('development, staging, production')
+    expect(invalidEnvErrors[0].message).toContain(
+      'development, staging, production'
+    )
 
     // Test invalid version format
     const invalidVersionYaml = `
@@ -120,7 +122,9 @@ outputs:
     const invalidVersionSteps = findReferencedSteps(invalidVersionYaml, schemas)
     const invalidVersionErrors = validateStep(invalidVersionSteps[0], schema, 1)
     expect(invalidVersionErrors.length).toBeGreaterThan(0)
-    expect(invalidVersionErrors[0].message).toContain('does not match required pattern')
+    expect(invalidVersionErrors[0].message).toContain(
+      'does not match required pattern'
+    )
 
     // Test valid version formats
     const versions = ['1.2.3', '0.0.1', '10.20.30']

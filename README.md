@@ -121,7 +121,7 @@ Create `action.schema.yml` next to your `action.yml`:
 types:
   url:
     type: string
-    match: "^https?://.*"
+    match: '^https?://.*'
   semver:
     type: string
     match: "^\\d+\\.\\d+\\.\\d+$"
@@ -134,22 +134,22 @@ inputs:
       - development
       - staging
       - production
-  
+
   version:
-    type: semver  # Reference to custom type
-  
+    type: semver # Reference to custom type
+
   api-url:
-    type: url  # Reference to custom type
-  
+    type: url # Reference to custom type
+
   timeout:
     type: number
-  
+
   dry-run:
     type: boolean
-  
+
   log-level:
     type: string
-    match: "^(debug|info|warn|error)$"
+    match: '^(debug|info|warn|error)$'
 
 # Validate outputs
 outputs:
@@ -162,7 +162,9 @@ outputs:
 ### Type Definitions
 
 #### Boolean Type
+
 Accepts truthy/falsy values:
+
 - **Truthy**: `true`, `yes`, `y`, `1`, `on`
 - **Falsy**: `false`, `no`, `n`, `0`, `off`, `` (empty)
 
@@ -173,7 +175,9 @@ inputs:
 ```
 
 #### Number Type
+
 Accepts numeric values including scientific notation:
+
 ```yaml
 inputs:
   timeout:
@@ -181,7 +185,9 @@ inputs:
 ```
 
 #### String Type with Pattern
+
 Validates strings against regex patterns:
+
 ```yaml
 inputs:
   email:
@@ -190,11 +196,14 @@ inputs:
 ```
 
 Regex patterns support both formats:
+
 - Plain string: `"^pattern$"`
 - With flags: `"/pattern/i"` (case-insensitive)
 
 #### Choice Type
+
 Restricts input to specific values:
+
 ```yaml
 inputs:
   log-level:
@@ -209,6 +218,7 @@ inputs:
 ### Value Normalization
 
 Before validation, values are normalized by:
+
 - Removing leading/trailing whitespace
 - Removing enclosing quotes (`"..."` or `'...'`)
 - Removing trailing comments (`value # comment`)
@@ -219,6 +229,7 @@ Before validation, values are normalized by:
 ### Backward Compatibility
 
 Schema files are optional. Without a schema file:
+
 - Explicit `type` field in `action.yml` is still respected
 - Basic validation continues to work
 - No breaking changes to existing workflows
