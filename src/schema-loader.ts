@@ -9,6 +9,8 @@ export interface TypeDefinition {
   type: 'boolean' | 'number' | 'string' | 'choice'
   match?: string // regex pattern for string type
   options?: string[] // valid options for choice type
+  separator?: string // separator for multi-value inputs (e.g., ',', ';', 'newline')
+  items?: TypeDefinition // validation for each item in multi-value inputs
 }
 
 /**
@@ -27,6 +29,8 @@ export interface ResolvedTypeDefinition {
   type: 'boolean' | 'number' | 'string' | 'choice'
   match?: RegExp // compiled regex pattern
   options?: string[]
+  separator?: string // separator for multi-value inputs
+  items?: ResolvedTypeDefinition // validation for each item in multi-value inputs
 }
 
 /**
@@ -158,6 +162,25 @@ function validateTypeDefinition(def: unknown): TypeDefinition {
     throw new Error(`choice type requires options array`)
   }
 
+  // Validate separator for multi-value inputs
+  if (typeDef.separator && typeof typeDef.separator === 'string') {
+    result.separator = typeDef.separator
+  }
+
+  // Validate items for multi-value inputs
+  if (typeDef.items) {
+    if (typeof typeDef.items === 'object' && typeDef.items !== null) {
+      result.items = validateTypeDefinition(typeDef.items)
+    } else {
+      throw new Error(`items must be a type definition object`)
+    }
+  }
+
+  // If items is specified, separator should also be specified (or default to newline)
+  if (result.items && !result.separator) {
+    result.separator = 'newline' // default separator
+  }
+
   return result
 }
 
@@ -189,6 +212,16 @@ export function resolveTypeDefinition(
   // Copy options if present
   if (def.options) {
     resolved.options = [...def.options]
+  }
+
+  // Copy separator if present
+  if (def.separator) {
+    resolved.separator = def.separator
+  }
+
+  // Recursively resolve items if present
+  if (def.items) {
+    resolved.items = resolveTypeDefinition(def.items, customTypes)
   }
 
   return resolved

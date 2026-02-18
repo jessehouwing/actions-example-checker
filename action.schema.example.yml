@@ -56,6 +56,34 @@ inputs:
   notification-email:
     type: email
 
+  # Multi-value input with comma separator
+  # Each tag must match the specified pattern
+  tags:
+    type: string
+    separator: ','
+    items:
+      type: string
+      match: '^[a-z0-9-]+$'
+
+  # Multi-value input with newline separator (default when items is specified)
+  # Each environment must be one of the specified options
+  environments:
+    type: string
+    separator: newline
+    items:
+      type: choice
+      options:
+        - development
+        - staging
+        - production
+
+  # Multi-value with numbers
+  ports:
+    type: string
+    separator: ','
+    items:
+      type: number
+
 # Validate outputs (optional but recommended)
 outputs:
   deployment-id:
