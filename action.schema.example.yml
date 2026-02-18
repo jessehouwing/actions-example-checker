@@ -21,13 +21,43 @@ types:
 
 # Validate inputs with explicit types
 inputs:
-  # Choice type - restricts to specific values
+  # Choice type - restricts to specific values (simple format)
   environment:
     type: choice
     options:
       - development
       - staging
       - production
+
+  # Choice type with descriptions and alternatives
+  # Allows primary values (a, d) or their alternatives (b, c, e, f) or simple option (g)
+  with-options:
+    type: choice
+    options:
+      - value: a
+        description: this does X
+        alternatives:
+          - b
+          - c
+      - value: d
+        description: this does Y
+        alternatives:
+          - e
+          - f
+      - g
+
+  # Choice type with mixed simple and object options
+  # This demonstrates that you can mix simple strings with object format
+  log-format:
+    type: choice
+    options:
+      - json
+      - value: text
+        description: Plain text format
+        alternatives:
+          - plain
+          - simple
+      - xml
 
   # Reference to custom type
   api-url:

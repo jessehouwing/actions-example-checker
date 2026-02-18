@@ -38931,7 +38931,36 @@ function validateTypeDefinition(def) {
             throw new Error(`options can only be used with choice type`);
         }
         if (Array.isArray(typeDef.options)) {
-            result.options = typeDef.options.map(String);
+            result.options = typeDef.options.map((opt) => {
+                if (typeof opt === 'string') {
+                    return opt;
+                }
+                else if (typeof opt === 'object' && opt !== null) {
+                    // Validate ChoiceOption structure
+                    const choiceOpt = opt;
+                    if (typeof choiceOpt.value !== 'string') {
+                        throw new Error(`Choice option must have a 'value' string property`);
+                    }
+                    if (choiceOpt.description !== undefined &&
+                        typeof choiceOpt.description !== 'string') {
+                        throw new Error(`Choice option 'description' must be a string if provided`);
+                    }
+                    if (choiceOpt.alternatives !== undefined) {
+                        if (!Array.isArray(choiceOpt.alternatives) ||
+                            !choiceOpt.alternatives.every((alt) => typeof alt === 'string')) {
+                            throw new Error(`Choice option 'alternatives' must be an array of strings if provided`);
+                        }
+                    }
+                    return {
+                        value: choiceOpt.value,
+                        description: choiceOpt.description,
+                        alternatives: choiceOpt.alternatives,
+                    };
+                }
+                else {
+                    throw new Error(`Options must be strings or objects with value, description, and alternatives properties`);
+                }
+            });
         }
     }
     // Ensure choice type has options
@@ -38985,9 +39014,22 @@ function resolveTypeDefinition(def, customTypes) {
     if (def.match) {
         resolved.match = compileRegex(def.match);
     }
-    // Copy options if present
+    // Copy options if present, flattening alternatives into the main options array
     if (def.options) {
-        resolved.options = [...def.options];
+        resolved.options = [];
+        for (const opt of def.options) {
+            if (typeof opt === 'string') {
+                resolved.options.push(opt);
+            }
+            else {
+                // For object options, add the primary value
+                resolved.options.push(opt.value);
+                // Add all alternatives as valid values
+                if (opt.alternatives) {
+                    resolved.options.push(...opt.alternatives);
+                }
+            }
+        }
     }
     // Normalize separators to array format
     if (def.separators) {
