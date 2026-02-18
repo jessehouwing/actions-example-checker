@@ -39147,6 +39147,18 @@ function resolveTypeDefinition(def, customTypes) {
     if (overrides.items !== undefined) {
         resolvedBase.items = resolveTypeDefinition(overrides.items, customTypes);
     }
+    // Auto-create items when separators are present but items are not
+    // This allows the shorthand: `separators: ','` with `match` or `options` on the same level
+    // which will apply the validation to each separated value
+    if (resolvedBase.separators &&
+        !resolvedBase.items &&
+        (resolvedBase.match || resolvedBase.options)) {
+        resolvedBase.items = {
+            type: resolvedBase.type,
+            match: resolvedBase.match,
+            options: resolvedBase.options,
+        };
+    }
     return resolvedBase;
 }
 /**
