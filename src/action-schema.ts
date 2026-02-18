@@ -62,7 +62,7 @@ export async function loadActionSchema(
       type?: string
       options?: string[]
       match?: RegExp
-      separator?: string
+      separators?: string[]
       items?: {
         type?: string
         options?: string[]
@@ -79,7 +79,7 @@ export async function loadActionSchema(
         let inputType: string | undefined
         let options: string[] | undefined
         let match: RegExp | undefined
-        let separator: string | undefined
+        let separators: string[] | undefined
         let items:
           | {
               type?: string
@@ -112,7 +112,7 @@ export async function loadActionSchema(
           inputType = resolvedType.type
           options = resolvedType.options
           match = resolvedType.match
-          separator = resolvedType.separator
+          separators = resolvedType.separators
           if (resolvedType.items) {
             items = {
               type: resolvedType.items.type,
@@ -127,7 +127,7 @@ export async function loadActionSchema(
           type: inputType,
           options,
           match,
-          separator,
+          separators,
           items,
         })
       }

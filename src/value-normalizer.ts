@@ -221,15 +221,15 @@ export function validateMatch(value: string, pattern: RegExp): boolean {
 }
 
 /**
- * Split a multi-value input using the specified separator
+ * Split a multi-value input using the specified separator(s)
  *
  * @param value - The input value to split
- * @param separator - The separator to use ('newline', ',', ';', etc.)
+ * @param separators - Array of separators to use (e.g., [','], [',', ';'], ['newline'])
  * @returns Array of split values, or null if value contains non-literal expressions
  */
 export function splitMultiValue(
   value: unknown,
-  separator: string
+  separators: string[]
 ): string[] | null {
   if (value === null || value === undefined) {
     return null
@@ -249,8 +249,13 @@ export function splitMultiValue(
   // Remove enclosing quotes
   str = removeEnclosingQuotes(str)
 
+  // Check if any separator is 'newline' or '\n'
+  const hasNewlineSeparator = separators.some(
+    (sep) => sep === 'newline' || sep === '\\n'
+  )
+
   // For newline separator, split on actual newlines
-  if (separator === 'newline' || separator === '\\n') {
+  if (hasNewlineSeparator) {
     // Split on newlines and filter out empty lines
     return str
       .split('\n')
@@ -262,23 +267,21 @@ export function splitMultiValue(
       .filter((line) => line.length > 0)
   }
 
-  // For other separators, split on the separator
-  // Handle escaped separators by temporarily replacing them
-  const escapePlaceholder = '\x00ESCAPED_SEP\x00'
-  const escapedSep = `\\${separator}`
-
-  // Replace escaped separators with placeholder
-  str = str.replace(
-    new RegExp(escapedSep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
-    escapePlaceholder
+  // For other separators, split on any of the separators
+  // Build a regex pattern that matches any of the separators
+  const escapedSeparators = separators.map((sep) =>
+    sep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   )
+  const separatorPattern = new RegExp(`(${escapedSeparators.join('|')})`)
 
-  // Split on the separator
+  // Split on any separator
   const items = str
-    .split(separator)
+    .split(separatorPattern)
+    .filter((item, index) => {
+      // Filter out the separators themselves (odd indices)
+      return index % 2 === 0
+    })
     .map((item) => {
-      // Restore escaped separators
-      item = item.replace(new RegExp(escapePlaceholder, 'g'), separator)
       // Remove trailing comments and trim
       item = removeTrailingComment(item.trim())
       return item

@@ -303,14 +303,14 @@ export function validateStep(
         step.withLines?.get(inputName) || blockStartLine + step.lineInBlock
 
       // Check if this is a multi-value input
-      if (inputSchema.items && inputSchema.separator) {
+      if (inputSchema.items && inputSchema.separators) {
         // Validate as multi-value input - TypeScript now knows both are defined
         errors.push(
           ...validateMultiValueInput(
             inputName,
             inputValue,
             {
-              separator: inputSchema.separator,
+              separators: inputSchema.separators,
               items: inputSchema.items,
             },
             step.uses,
@@ -363,6 +363,11 @@ function validateSingleValueInput(
 
   // Validate input type
   if (inputSchema.type) {
+    // Skip validation for 'any' type
+    if (inputSchema.type === 'any') {
+      return errors
+    }
+
     if (inputSchema.type === 'boolean') {
       const boolValue = normalizeBoolean(inputValue)
 
@@ -430,7 +435,7 @@ function validateMultiValueInput(
   inputName: string,
   inputValue: unknown,
   inputSchema: {
-    separator: string
+    separators: string[]
     items: {
       type?: string
       options?: string[]
@@ -442,8 +447,8 @@ function validateMultiValueInput(
 ): ValidationError[] {
   const errors: ValidationError[] = []
 
-  // Split the value using the specified separator
-  const items = splitMultiValue(inputValue, inputSchema.separator)
+  // Split the value using the specified separators
+  const items = splitMultiValue(inputValue, inputSchema.separators)
 
   // Skip validation for expressions or null (non-literal expressions)
   if (items === null) {
@@ -457,6 +462,11 @@ function validateMultiValueInput(
 
     // Validate item type
     if (itemSchema.type) {
+      // Skip validation for 'any' type
+      if (itemSchema.type === 'any') {
+        continue
+      }
+
       if (itemSchema.type === 'boolean') {
         const boolValue = normalizeBoolean(item)
 

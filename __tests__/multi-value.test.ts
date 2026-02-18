@@ -22,49 +22,49 @@ describe('Multi-value input support', () => {
   describe('splitMultiValue', () => {
     it('should split newline-separated values', () => {
       const value = 'item1\nitem2\nitem3'
-      const result = splitMultiValue(value, 'newline')
+      const result = splitMultiValue(value, ['newline'])
       expect(result).toEqual(['item1', 'item2', 'item3'])
     })
 
     it('should split comma-separated values', () => {
       const value = 'item1, item2, item3'
-      const result = splitMultiValue(value, ',')
+      const result = splitMultiValue(value, [','])
       expect(result).toEqual(['item1', 'item2', 'item3'])
     })
 
     it('should split semicolon-separated values', () => {
       const value = 'item1; item2; item3'
-      const result = splitMultiValue(value, ';')
+      const result = splitMultiValue(value, [';'])
       expect(result).toEqual(['item1', 'item2', 'item3'])
     })
 
-    it('should handle escaped separators', () => {
-      const value = 'item1\\, with comma, item2'
-      const result = splitMultiValue(value, ',')
-      expect(result).toEqual(['item1, with comma', 'item2'])
+    it('should split with multiple separators', () => {
+      const value = 'item1, item2; item3| item4'
+      const result = splitMultiValue(value, [',', ';', '|'])
+      expect(result).toEqual(['item1', 'item2', 'item3', 'item4'])
     })
 
     it('should filter out empty items', () => {
       const value = 'item1,, item2,  ,item3'
-      const result = splitMultiValue(value, ',')
+      const result = splitMultiValue(value, [','])
       expect(result).toEqual(['item1', 'item2', 'item3'])
     })
 
     it('should handle comments in newline-separated values', () => {
       const value = 'item1 # comment\nitem2\nitem3 # another comment'
-      const result = splitMultiValue(value, 'newline')
+      const result = splitMultiValue(value, ['newline'])
       expect(result).toEqual(['item1', 'item2', 'item3'])
     })
 
     it('should return null for expressions', () => {
       const value = '${{ inputs.items }}'
-      const result = splitMultiValue(value, ',')
+      const result = splitMultiValue(value, [','])
       expect(result).toBeNull()
     })
 
     it('should handle \\n as separator', () => {
       const value = 'item1\nitem2\nitem3'
-      const result = splitMultiValue(value, '\\n')
+      const result = splitMultiValue(value, ['\\n'])
       expect(result).toEqual(['item1', 'item2', 'item3'])
     })
   })
@@ -81,7 +81,7 @@ describe('Multi-value input support', () => {
 inputs:
   tags:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: string
       match: "^[a-z]+$"
@@ -95,14 +95,14 @@ inputs:
       const tagsDef = schema?.inputs?.tags
       if (typeof tagsDef !== 'string') {
         expect(tagsDef?.type).toBe('string')
-        expect(tagsDef?.separator).toBe(',')
+        expect(tagsDef?.separators).toBe(',')
         expect(tagsDef?.items).toBeDefined()
         expect(tagsDef?.items?.type).toBe('string')
         expect(tagsDef?.items?.match).toBe('^[a-z]+$')
       }
     })
 
-    it('should default separator to newline when items is specified', async () => {
+    it('should default separators to newline when items is specified', async () => {
       const actionPath = path.join(testDir, 'action.yml')
       const schemaPath = path.join(testDir, 'action.schema.yml')
 
@@ -122,7 +122,7 @@ inputs:
       expect(schema).not.toBeNull()
       const tagsDef = schema?.inputs?.tags
       if (typeof tagsDef !== 'string') {
-        expect(tagsDef?.separator).toBe('newline')
+        expect(tagsDef?.separators).toBe('newline')
       }
     })
 
@@ -137,7 +137,7 @@ inputs:
 inputs:
   environments:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: choice
       options:
@@ -161,6 +161,32 @@ inputs:
       }
     })
 
+    it('should support multiple separators', async () => {
+      const actionPath = path.join(testDir, 'action.yml')
+      const schemaPath = path.join(testDir, 'action.schema.yml')
+
+      await fs.writeFile(actionPath, 'name: Test\n')
+      await fs.writeFile(
+        schemaPath,
+        `
+inputs:
+  tags:
+    type: string
+    separators: [',', ';', '|']
+    items:
+      type: string
+`
+      )
+
+      const schema = await loadActionSchemaDefinition(actionPath)
+      expect(schema).not.toBeNull()
+
+      const tagsDef = schema?.inputs?.tags
+      if (typeof tagsDef !== 'string') {
+        expect(tagsDef?.separators).toEqual([',', ';', '|'])
+      }
+    })
+
     it('should resolve items in resolveTypeDefinition', async () => {
       const actionPath = path.join(testDir, 'action.yml')
       const schemaPath = path.join(testDir, 'action.schema.yml')
@@ -172,7 +198,7 @@ inputs:
 inputs:
   tags:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: string
       match: "^[a-z]+$"
@@ -185,7 +211,7 @@ inputs:
       const tagsDef = schema?.inputs?.tags
       if (typeof tagsDef !== 'string') {
         const resolved = resolveTypeDefinition(tagsDef, {})
-        expect(resolved.separator).toBe(',')
+        expect(resolved.separators).toEqual([','])
         expect(resolved.items).toBeDefined()
         expect(resolved.items?.type).toBe('string')
         expect(resolved.items?.match).toBeDefined()
@@ -217,7 +243,7 @@ inputs:
 inputs:
   tags:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: string
       match: "^[a-z0-9-]+$"
@@ -228,7 +254,7 @@ inputs:
       const tagsInput = schema.inputs.get('tags')
 
       expect(tagsInput).toBeDefined()
-      expect(tagsInput?.separator).toBe(',')
+      expect(tagsInput?.separators).toEqual([','])
       expect(tagsInput?.items).toBeDefined()
       expect(tagsInput?.items?.type).toBe('string')
       expect(tagsInput?.items?.match).toBeDefined()

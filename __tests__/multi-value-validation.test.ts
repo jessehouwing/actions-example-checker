@@ -43,7 +43,7 @@ inputs:
 inputs:
   tags:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: string
       match: "^[a-z0-9-]+$"
@@ -78,7 +78,7 @@ inputs:
 inputs:
   tags:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: string
       match: "^[a-z0-9-]+$"
@@ -117,7 +117,7 @@ inputs:
 inputs:
   environments:
     type: string
-    separator: newline
+    separators: newline
     items:
       type: choice
       options:
@@ -158,7 +158,7 @@ inputs:
 inputs:
   environments:
     type: string
-    separator: newline
+    separators: newline
     items:
       type: choice
       options:
@@ -203,7 +203,7 @@ inputs:
 inputs:
   ports:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: number
 `
@@ -237,7 +237,7 @@ inputs:
 inputs:
   ports:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: number
 `
@@ -275,7 +275,7 @@ inputs:
 inputs:
   flags:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: boolean
 `
@@ -309,7 +309,7 @@ inputs:
 inputs:
   flags:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: boolean
 `
@@ -347,7 +347,7 @@ inputs:
 inputs:
   tags:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: string
       match: "^[a-z0-9-]+$"
@@ -385,7 +385,7 @@ inputs:
 inputs:
   items:
     type: string
-    separator: ';'
+    separators: ';'
     items:
       type: string
       match: "^[A-Z]+$"

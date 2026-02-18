@@ -38939,6 +38939,23 @@ function validateTypeDefinition(def) {
         (!result.options || result.options.length === 0)) {
         throw new Error(`choice type requires options array`);
     }
+    // Validate separator for multi-value inputs
+    if (typeDef.separator && typeof typeDef.separator === 'string') {
+        result.separator = typeDef.separator;
+    }
+    // Validate items for multi-value inputs
+    if (typeDef.items) {
+        if (typeof typeDef.items === 'object' && typeDef.items !== null) {
+            result.items = validateTypeDefinition(typeDef.items);
+        }
+        else {
+            throw new Error(`items must be a type definition object`);
+        }
+    }
+    // If items is specified, separator should also be specified (or default to newline)
+    if (result.items && !result.separator) {
+        result.separator = 'newline'; // default separator
+    }
     return result;
 }
 /**
@@ -38963,6 +38980,14 @@ function resolveTypeDefinition(def, customTypes) {
     // Copy options if present
     if (def.options) {
         resolved.options = [...def.options];
+    }
+    // Copy separator if present
+    if (def.separator) {
+        resolved.separator = def.separator;
+    }
+    // Recursively resolve items if present
+    if (def.items) {
+        resolved.items = resolveTypeDefinition(def.items, customTypes);
     }
     return resolved;
 }
@@ -39022,6 +39047,8 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
                 let inputType;
                 let options;
                 let match;
+                let separator;
+                let items;
                 // Check for explicit type in action.yml
                 if (typeof def.type === 'string') {
                     inputType = def.type.toLowerCase();
@@ -39039,12 +39066,22 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
                     inputType = resolvedType.type;
                     options = resolvedType.options;
                     match = resolvedType.match;
+                    separator = resolvedType.separator;
+                    if (resolvedType.items) {
+                        items = {
+                            type: resolvedType.items.type,
+                            options: resolvedType.items.options,
+                            match: resolvedType.items.match,
+                        };
+                    }
                 }
                 inputs.set(inputName, {
                     required: def.required === true || def.required === 'true',
                     type: inputType,
                     options,
                     match,
+                    separator,
+                    items,
                 });
             }
         }
@@ -44021,6 +44058,58 @@ function normalizeNumber(value) {
 function validateMatch(value, pattern) {
     return pattern.test(value);
 }
+/**
+ * Split a multi-value input using the specified separator
+ *
+ * @param value - The input value to split
+ * @param separator - The separator to use ('newline', ',', ';', etc.)
+ * @returns Array of split values, or null if value contains non-literal expressions
+ */
+function splitMultiValue(value, separator) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+    let str = String(value);
+    // Check if the value contains non-literal expressions
+    // If it does, return null to skip validation
+    if (containsNonLiteralExpression(str)) {
+        return null;
+    }
+    // Remove leading and trailing whitespace
+    str = str.trim();
+    // Remove enclosing quotes
+    str = removeEnclosingQuotes(str);
+    // For newline separator, split on actual newlines
+    if (separator === 'newline' || separator === '\\n') {
+        // Split on newlines and filter out empty lines
+        return str
+            .split('\n')
+            .map((line) => {
+            // Remove trailing comments from each line
+            line = removeTrailingComment(line.trim());
+            return line;
+        })
+            .filter((line) => line.length > 0);
+    }
+    // For other separators, split on the separator
+    // Handle escaped separators by temporarily replacing them
+    const escapePlaceholder = '\x00ESCAPED_SEP\x00';
+    const escapedSep = `\\${separator}`;
+    // Replace escaped separators with placeholder
+    str = str.replace(new RegExp(escapedSep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), escapePlaceholder);
+    // Split on the separator
+    const items = str
+        .split(separator)
+        .map((item) => {
+        // Restore escaped separators
+        item = item.replace(new RegExp(escapePlaceholder, 'g'), separator);
+        // Remove trailing comments and trim
+        item = removeTrailingComment(item.trim());
+        return item;
+    })
+        .filter((item) => item.length > 0);
+    return items;
+}
 
 /**
  * Extract YAML code blocks from markdown content
@@ -44230,73 +44319,150 @@ function validateStep(step, schema, blockStartLine) {
                 });
                 continue;
             }
-            // Normalize the value for validation
-            const normalizedValue = normalizeValue(inputValue);
-            // Skip validation for expressions or null (non-literal expressions)
-            if (normalizedValue === null || containsExpression(String(inputValue))) {
-                continue;
-            }
-            // Validate input type
-            if (inputSchema.type) {
-                if (inputSchema.type === 'boolean') {
-                    const boolValue = normalizeBoolean(inputValue);
-                    if (boolValue === null) {
-                        const line = step.withLines?.get(inputName) ||
-                            blockStartLine + step.lineInBlock;
-                        errors.push({
-                            message: `Input '${inputName}' for action '${step.uses}' expects a boolean value, but got '${normalizedValue}'`,
-                            line,
-                            column: 1,
-                        });
-                    }
-                }
-                else if (inputSchema.type === 'number') {
-                    const numValue = normalizeNumber(inputValue);
-                    if (numValue === null) {
-                        const line = step.withLines?.get(inputName) ||
-                            blockStartLine + step.lineInBlock;
-                        errors.push({
-                            message: `Input '${inputName}' for action '${step.uses}' expects a number value, but got '${normalizedValue}'`,
-                            line,
-                            column: 1,
-                        });
-                    }
-                }
-                else if (inputSchema.type === 'choice' ||
-                    inputSchema.type === 'string') {
-                    // Validate match pattern for string type
-                    if (inputSchema.match &&
-                        !validateMatch(normalizedValue, inputSchema.match)) {
-                        const line = step.withLines?.get(inputName) ||
-                            blockStartLine + step.lineInBlock;
-                        errors.push({
-                            message: `Input '${inputName}' for action '${step.uses}' does not match required pattern: ${inputSchema.match}`,
-                            line,
-                            column: 1,
-                        });
-                    }
-                    // Validate options for choice type
-                    if (inputSchema.options && inputSchema.options.length > 0) {
-                        if (!inputSchema.options.includes(normalizedValue)) {
-                            const line = step.withLines?.get(inputName) ||
-                                blockStartLine + step.lineInBlock;
-                            errors.push({
-                                message: `Input '${inputName}' for action '${step.uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
-                                line,
-                                column: 1,
-                            });
-                        }
-                    }
-                }
+            const line = step.withLines?.get(inputName) || blockStartLine + step.lineInBlock;
+            // Check if this is a multi-value input
+            if (inputSchema.items && inputSchema.separator) {
+                // Validate as multi-value input - TypeScript now knows both are defined
+                errors.push(...validateMultiValueInput(inputName, inputValue, {
+                    separator: inputSchema.separator,
+                    items: inputSchema.items,
+                }, step.uses, line));
             }
             else {
-                // No type specified, check options anyway if present (backward compatibility)
-                if (inputSchema.options && inputSchema.options.length > 0) {
-                    if (!inputSchema.options.includes(normalizedValue)) {
-                        const line = step.withLines?.get(inputName) ||
-                            blockStartLine + step.lineInBlock;
+                // Validate as single-value input
+                errors.push(...validateSingleValueInput(inputName, inputValue, inputSchema, step.uses, line));
+            }
+        }
+    }
+    // Validate outputs (now handled separately by validateOutputReferences)
+    return errors;
+}
+/**
+ * Validate a single-value input
+ */
+function validateSingleValueInput(inputName, inputValue, inputSchema, uses, line) {
+    const errors = [];
+    // Normalize the value for validation
+    const normalizedValue = normalizeValue(inputValue);
+    // Skip validation for expressions or null (non-literal expressions)
+    if (normalizedValue === null || containsExpression(String(inputValue))) {
+        return errors;
+    }
+    // Validate input type
+    if (inputSchema.type) {
+        if (inputSchema.type === 'boolean') {
+            const boolValue = normalizeBoolean(inputValue);
+            if (boolValue === null) {
+                errors.push({
+                    message: `Input '${inputName}' for action '${uses}' expects a boolean value, but got '${normalizedValue}'`,
+                    line,
+                    column: 1,
+                });
+            }
+        }
+        else if (inputSchema.type === 'number') {
+            const numValue = normalizeNumber(inputValue);
+            if (numValue === null) {
+                errors.push({
+                    message: `Input '${inputName}' for action '${uses}' expects a number value, but got '${normalizedValue}'`,
+                    line,
+                    column: 1,
+                });
+            }
+        }
+        else if (inputSchema.type === 'choice' || inputSchema.type === 'string') {
+            // Validate match pattern for string type
+            if (inputSchema.match &&
+                !validateMatch(normalizedValue, inputSchema.match)) {
+                errors.push({
+                    message: `Input '${inputName}' for action '${uses}' does not match required pattern: ${inputSchema.match}`,
+                    line,
+                    column: 1,
+                });
+            }
+            // Validate options for choice type
+            if (inputSchema.options && inputSchema.options.length > 0) {
+                if (!inputSchema.options.includes(normalizedValue)) {
+                    errors.push({
+                        message: `Input '${inputName}' for action '${uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
+                        line,
+                        column: 1,
+                    });
+                }
+            }
+        }
+    }
+    else {
+        // No type specified, check options anyway if present (backward compatibility)
+        if (inputSchema.options && inputSchema.options.length > 0) {
+            if (!inputSchema.options.includes(normalizedValue)) {
+                errors.push({
+                    message: `Input '${inputName}' for action '${uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
+                    line,
+                    column: 1,
+                });
+            }
+        }
+    }
+    return errors;
+}
+/**
+ * Validate a multi-value input
+ */
+function validateMultiValueInput(inputName, inputValue, inputSchema, uses, line) {
+    const errors = [];
+    // Split the value using the specified separator
+    const items = splitMultiValue(inputValue, inputSchema.separator);
+    // Skip validation for expressions or null (non-literal expressions)
+    if (items === null) {
+        return errors;
+    }
+    // Validate each item
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const itemSchema = inputSchema.items;
+        // Validate item type
+        if (itemSchema.type) {
+            if (itemSchema.type === 'boolean') {
+                const boolValue = normalizeBoolean(item);
+                if (boolValue === null) {
+                    errors.push({
+                        message: `Input '${inputName}' for action '${uses}' expects boolean values, but item ${i + 1} is '${item}'`,
+                        line,
+                        column: 1,
+                    });
+                }
+            }
+            else if (itemSchema.type === 'number') {
+                const numValue = normalizeNumber(item);
+                if (numValue === null) {
+                    errors.push({
+                        message: `Input '${inputName}' for action '${uses}' expects number values, but item ${i + 1} is '${item}'`,
+                        line,
+                        column: 1,
+                    });
+                }
+            }
+            else if (itemSchema.type === 'choice' || itemSchema.type === 'string') {
+                // Normalize the item value
+                const normalizedItem = normalizeValue(item);
+                if (normalizedItem === null) {
+                    continue;
+                }
+                // Validate match pattern for string type
+                if (itemSchema.match &&
+                    !validateMatch(normalizedItem, itemSchema.match)) {
+                    errors.push({
+                        message: `Input '${inputName}' for action '${uses}': item ${i + 1} ('${normalizedItem}') does not match required pattern: ${itemSchema.match}`,
+                        line,
+                        column: 1,
+                    });
+                }
+                // Validate options for choice type
+                if (itemSchema.options && itemSchema.options.length > 0) {
+                    if (!itemSchema.options.includes(normalizedItem)) {
                         errors.push({
-                            message: `Input '${inputName}' for action '${step.uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
+                            message: `Input '${inputName}' for action '${uses}': item ${i + 1} ('${normalizedItem}') expects one of [${itemSchema.options.join(', ')}]`,
                             line,
                             column: 1,
                         });
@@ -44305,7 +44471,6 @@ function validateStep(step, schema, blockStartLine) {
             }
         }
     }
-    // Validate outputs (now handled separately by validateOutputReferences)
     return errors;
 }
 /**

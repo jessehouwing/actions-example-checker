@@ -215,24 +215,48 @@ inputs:
       - error
 ```
 
-#### Multi-Value Type
+#### Any Type
 
-Validates inputs that contain multiple values separated by a delimiter. Each value is validated against the specified type and pattern.
+Accepts any value without validation. Use this when you want to skip type checking for an input:
 
 ```yaml
 inputs:
-  # Comma-separated tags
+  custom-data:
+    type: any
+
+  # Also works with multi-value inputs
+  flexible-list:
+    type: string
+    separators: ','
+    items:
+      type: any
+```
+
+#### Multi-Value Type
+
+Validates inputs that contain multiple values separated by delimiter(s). Each value is validated against the specified type and pattern.
+
+```yaml
+inputs:
+  # Single separator (comma)
   tags:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: string
       match: '^[a-z0-9-]+$'
 
+  # Multiple separators (comma, semicolon, or pipe)
+  flexible-tags:
+    type: string
+    separators: [',', ';', '|']
+    items:
+      type: string
+
   # Newline-separated environments
   environments:
     type: string
-    separator: newline # Can also use '\n'
+    separators: newline # Can also use '\n'
     items:
       type: choice
       options:
@@ -243,7 +267,7 @@ inputs:
   # Comma-separated port numbers
   ports:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: number
 ```
@@ -255,14 +279,20 @@ inputs:
 - `|` - Pipe
 - `newline` or `\n` - Newline (for multiline inputs with `|` or `>`)
 - Any single character
+- Arrays of separators: `[',', ';', '|']` - splits on any of the specified separators
 
 **Usage examples:**
 
 ```yaml
-# Comma-separated
+# Single separator (comma)
 - uses: owner/action@v1
   with:
     tags: tag1, tag-2, tag3
+
+# Multiple separators (comma, semicolon, or pipe)
+- uses: owner/action@v1
+  with:
+    tags: tag1, tag-2; tag3| tag4
 
 # Newline-separated (multiline)
 - uses: owner/action@v1
@@ -273,7 +303,7 @@ inputs:
       production
 ```
 
-**Note:** If `items` is specified without `separator`, it defaults to `newline`.
+**Note:** If `items` is specified without `separators`, it defaults to `newline`.
 
 ### Value Normalization
 

@@ -6,10 +6,10 @@ import * as yaml from 'yaml'
  * Type definition for custom types and inputs/outputs
  */
 export interface TypeDefinition {
-  type: 'boolean' | 'number' | 'string' | 'choice'
+  type: 'boolean' | 'number' | 'string' | 'choice' | 'any'
   match?: string // regex pattern for string type
   options?: string[] // valid options for choice type
-  separator?: string // separator for multi-value inputs (e.g., ',', ';', 'newline')
+  separators?: string | string[] // separator(s) for multi-value inputs (e.g., ',', [',', ';'], 'newline')
   items?: TypeDefinition // validation for each item in multi-value inputs
 }
 
@@ -26,10 +26,10 @@ export interface ActionSchemaDefinition {
  * Resolved type definition (with custom types resolved)
  */
 export interface ResolvedTypeDefinition {
-  type: 'boolean' | 'number' | 'string' | 'choice'
+  type: 'boolean' | 'number' | 'string' | 'choice' | 'any'
   match?: RegExp // compiled regex pattern
   options?: string[]
-  separator?: string // separator for multi-value inputs
+  separators?: string[] // separator(s) for multi-value inputs (normalized to array)
   items?: ResolvedTypeDefinition // validation for each item in multi-value inputs
 }
 
@@ -126,14 +126,14 @@ function validateTypeDefinition(def: unknown): TypeDefinition {
   const typeDef = def as Record<string, unknown>
 
   const type = String(typeDef.type || 'string').toLowerCase()
-  if (!['boolean', 'number', 'string', 'choice'].includes(type)) {
+  if (!['boolean', 'number', 'string', 'choice', 'any'].includes(type)) {
     throw new Error(
-      `Invalid type: ${type}. Must be one of: boolean, number, string, choice`
+      `Invalid type: ${type}. Must be one of: boolean, number, string, choice, any`
     )
   }
 
   const result: TypeDefinition = {
-    type: type as 'boolean' | 'number' | 'string' | 'choice',
+    type: type as 'boolean' | 'number' | 'string' | 'choice' | 'any',
   }
 
   // Validate match for string type
@@ -162,9 +162,17 @@ function validateTypeDefinition(def: unknown): TypeDefinition {
     throw new Error(`choice type requires options array`)
   }
 
-  // Validate separator for multi-value inputs
-  if (typeDef.separator && typeof typeDef.separator === 'string') {
-    result.separator = typeDef.separator
+  // Validate separators for multi-value inputs
+  if (typeDef.separators) {
+    if (typeof typeDef.separators === 'string') {
+      result.separators = typeDef.separators
+    } else if (Array.isArray(typeDef.separators)) {
+      result.separators = typeDef.separators.map(String)
+    } else {
+      throw new Error(
+        `separators must be a string or array of strings, got ${typeof typeDef.separators}`
+      )
+    }
   }
 
   // Validate items for multi-value inputs
@@ -176,9 +184,9 @@ function validateTypeDefinition(def: unknown): TypeDefinition {
     }
   }
 
-  // If items is specified, separator should also be specified (or default to newline)
-  if (result.items && !result.separator) {
-    result.separator = 'newline' // default separator
+  // If items is specified, separators should also be specified (or default to newline)
+  if (result.items && !result.separators) {
+    result.separators = 'newline' // default separators
   }
 
   return result
@@ -214,9 +222,13 @@ export function resolveTypeDefinition(
     resolved.options = [...def.options]
   }
 
-  // Copy separator if present
-  if (def.separator) {
-    resolved.separator = def.separator
+  // Normalize separators to array format
+  if (def.separators) {
+    if (typeof def.separators === 'string') {
+      resolved.separators = [def.separators]
+    } else if (Array.isArray(def.separators)) {
+      resolved.separators = [...def.separators]
+    }
   }
 
   // Recursively resolve items if present

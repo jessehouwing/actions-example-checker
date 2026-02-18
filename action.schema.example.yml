@@ -60,16 +60,24 @@ inputs:
   # Each tag must match the specified pattern
   tags:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: string
       match: '^[a-z0-9-]+$'
+
+  # Multi-value input with multiple separators
+  # Values can be separated by comma, semicolon, or pipe
+  mixed-separators:
+    type: string
+    separators: [',', ';', '|']
+    items:
+      type: string
 
   # Multi-value input with newline separator (default when items is specified)
   # Each environment must be one of the specified options
   environments:
     type: string
-    separator: newline
+    separators: newline
     items:
       type: choice
       options:
@@ -80,9 +88,16 @@ inputs:
   # Multi-value with numbers
   ports:
     type: string
-    separator: ','
+    separators: ','
     items:
       type: number
+
+  # Multi-value with any type (no validation)
+  flexible-items:
+    type: string
+    separators: ','
+    items:
+      type: any
 
 # Validate outputs (optional but recommended)
 outputs:
