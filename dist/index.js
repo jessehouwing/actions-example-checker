@@ -43772,7 +43772,9 @@ function findReferencedStepsTolerant(blockText, schemas) {
         if (!usesMatch) {
             continue;
         }
-        const usesValue = unquote(usesMatch[2]);
+        // Strip trailing comment from uses value
+        let usesValue = unquote(usesMatch[2]);
+        usesValue = stripComment(usesValue);
         const actionRef = extractActionReference(usesValue, schemas);
         if (!actionRef) {
             continue;
@@ -43795,9 +43797,9 @@ function findReferencedStepsTolerant(blockText, schemas) {
             if (innerIndent <= stepIndent) {
                 break;
             }
-            const idMatch = innerLine.match(/^[ \t]*id:\s*([^#\n]+?)\s*$/);
+            const idMatch = innerLine.match(/^[ \t]*id:\s*(.+?)\s*$/);
             if (idMatch) {
-                id = unquote(idMatch[1]);
+                id = unquote(stripComment(idMatch[1]));
             }
             const withMatch = innerLine.match(/^([ \t]*)with:\s*$/);
             if (withMatch) {
@@ -43810,14 +43812,38 @@ function findReferencedStepsTolerant(blockText, schemas) {
                 if (keyMatch) {
                     const key = keyMatch[1];
                     withObject = withObject || {};
-                    // Extract value
-                    const valueMatch = innerLine.match(/:\s*(.+?)\s*$/);
-                    if (valueMatch) {
-                        const rawValue = unquote(valueMatch[1]);
-                        withObject[key] = rawValue;
+                    // Check for multi-line value with | or >
+                    const multilineMatch = innerLine.match(/:\s*([|>])\s*$/);
+                    if (multilineMatch) {
+                        // Multi-line value - collect all indented lines
+                        const multilineIndent = innerIndent;
+                        const valueLines = [];
+                        for (let mlIndex = innerIndex + 1; mlIndex < lines.length; mlIndex++) {
+                            const mlLine = lines[mlIndex];
+                            const mlIndent = countIndent(mlLine);
+                            // If we hit a line at or less than the original indent, we're done
+                            if (mlLine.trim().length > 0 && mlIndent <= multilineIndent) {
+                                break;
+                            }
+                            // Only add non-empty lines or empty lines that aren't trailing
+                            if (mlLine.trim().length > 0) {
+                                valueLines.push(mlLine.trimStart());
+                                innerIndex = mlIndex;
+                            }
+                        }
+                        withObject[key] = valueLines.join('\n');
                     }
                     else {
-                        withObject[key] = true;
+                        // Extract value
+                        const valueMatch = innerLine.match(/:\s*(.+?)\s*$/);
+                        if (valueMatch) {
+                            let rawValue = unquote(valueMatch[1]);
+                            rawValue = stripComment(rawValue);
+                            withObject[key] = rawValue;
+                        }
+                        else {
+                            withObject[key] = true;
+                        }
                     }
                     withLines.set(key, innerIndex + 1);
                 }
@@ -43973,6 +43999,37 @@ function unquote(value) {
         const last = trimmed[trimmed.length - 1];
         if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
             return trimmed.slice(1, -1);
+        }
+    }
+    return trimmed;
+}
+/**
+ * Strip trailing comment from a value, but preserve # in quoted strings
+ */
+function stripComment(value) {
+    const trimmed = value.trim();
+    // If the value is quoted, don't strip comments from inside quotes
+    if (trimmed.length >= 2) {
+        const first = trimmed[0];
+        const last = trimmed[trimmed.length - 1];
+        if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+            return trimmed;
+        }
+    }
+    // Find # that's not inside quotes
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    for (let i = 0; i < trimmed.length; i++) {
+        const char = trimmed[i];
+        if (char === "'" && !inDoubleQuote) {
+            inSingleQuote = !inSingleQuote;
+        }
+        else if (char === '"' && !inSingleQuote) {
+            inDoubleQuote = !inDoubleQuote;
+        }
+        else if (char === '#' && !inSingleQuote && !inDoubleQuote) {
+            // Found a comment, return everything before it
+            return trimmed.substring(0, i).trim();
         }
     }
     return trimmed;
