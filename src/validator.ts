@@ -6,7 +6,7 @@ interface YamlBlock {
   contentStartLine: number
 }
 
-interface ReferencedStep {
+export interface ReferencedStep {
   actionReference: string
   uses: string
   with?: Record<string, unknown>
@@ -309,8 +309,58 @@ export function validateStep(
     }
   }
 
-  // Validate outputs (check if they're referenced in the same block)
-  // This would require more context, so we'll skip this for now
+  // Validate outputs (now handled separately by validateOutputReferences)
+
+  return errors
+}
+
+/**
+ * Validate output references in a YAML block
+ */
+export function validateOutputReferences(
+  blockText: string,
+  steps: ReferencedStep[],
+  schemas: Map<string, ActionSchema>,
+  blockStartLine: number
+): ValidationError[] {
+  const errors: ValidationError[] = []
+
+  // Build a map of step IDs to their schemas
+  const stepOutputs = new Map<string, Set<string>>()
+  for (const step of steps) {
+    if (step.id) {
+      const schema = schemas.get(step.actionReference)
+      if (schema) {
+        stepOutputs.set(step.id, schema.outputs)
+      }
+    }
+  }
+
+  // Find all output references in the block: steps.<step-id>.outputs.<output-name>
+  const outputRefRegex = /steps\.([A-Za-z0-9_-]+)\.outputs\.([A-Za-z0-9_-]+)/g
+  let match
+
+  while ((match = outputRefRegex.exec(blockText)) !== null) {
+    const stepId = match[1]
+    const outputName = match[2]
+    const line = blockStartLine + lineAtOffset(blockText, match.index) - 1
+
+    // Check if the step ID exists
+    const outputs = stepOutputs.get(stepId)
+    if (!outputs) {
+      // Step not found or doesn't have outputs - skip
+      continue
+    }
+
+    // Check if the output exists in the schema
+    if (!outputs.has(outputName)) {
+      errors.push({
+        message: `Unknown output '${outputName}' for step '${stepId}'. Available outputs: ${outputs.size > 0 ? Array.from(outputs).join(', ') : 'none'}`,
+        line,
+        column: 1,
+      })
+    }
+  }
 
   return errors
 }

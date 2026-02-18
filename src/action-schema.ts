@@ -9,7 +9,8 @@ import { ActionSchema } from './index.js'
 export async function loadActionSchema(
   actionFilePath: string,
   repositoryPath: string,
-  repository: string
+  repository: string,
+  parentRepo: string | null = null
 ): Promise<ActionSchema> {
   const content = await fs.readFile(actionFilePath, 'utf8')
   const action = yaml.parse(content)
@@ -28,6 +29,15 @@ export async function loadActionSchema(
   const actionReference = actionPath
     ? `${repository}/${actionPath}`
     : repository
+
+  // Build alternative names list (for fork parent)
+  const alternativeNames: string[] = []
+  if (parentRepo) {
+    const parentActionReference = actionPath
+      ? `${parentRepo}/${actionPath}`
+      : parentRepo
+    alternativeNames.push(parentActionReference)
+  }
 
   // Parse inputs
   const inputs = new Map<
@@ -87,6 +97,7 @@ export async function loadActionSchema(
 
   return {
     actionReference,
+    alternativeNames,
     inputs,
     outputs,
     sourceFile: path.relative(repositoryPath, actionFilePath),

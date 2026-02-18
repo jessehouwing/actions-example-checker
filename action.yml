@@ -6,6 +6,13 @@ branding:
   color: blue
 
 inputs:
+  token:
+    description: >
+      GitHub token for API access to check fork relationships. When provided,
+      the action will detect if the repository is a fork and allow examples to
+      reference either the fork name or the upstream parent name.
+    required: false
+    default: ${{ github.token }}
   repository:
     description: >
       Repository name in 'owner/repo' format. Used to match action references

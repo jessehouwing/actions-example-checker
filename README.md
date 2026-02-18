@@ -14,6 +14,7 @@ A GitHub Action that validates examples in documentation against your action's s
 - 🎯 **Value Validation**: Checks that input values match allowed options when specified
 - 🚫 **Expression Handling**: Skips validation for values containing GitHub Actions expressions (`${{ ... }}`)
 - 📊 **Output Validation**: Ensures referenced outputs exist in the action schema
+- 🔀 **Fork Support**: Automatically detects forks and validates examples using either fork or parent repository names
 - 🎯 **Precise Error Reporting**: Reports errors with file, line, and column information using GitHub Actions workflow commands
 
 ## Usage
@@ -50,13 +51,31 @@ Customize which files to scan:
     docs-pattern: '**/*.md'
 ```
 
+### With Fork Support
+
+If your repository is a fork (e.g., `jessehouwing/azdo-marketplace` forked from `microsoft/azure-devops-extension-tasks`), the action will automatically detect this and allow examples to use either name:
+
+```yaml
+- uses: jessehouwing/actions-example-checker@v1
+  with:
+    token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+This allows documentation to reference either:
+- `uses: jessehouwing/azdo-marketplace@v1` (fork name)
+- `uses: microsoft/azure-devops-extension-tasks@v1` (parent name)
+
+Both will be validated against the same `action.yml` schema from your repository.
+
 ## Inputs
 
-| Input             | Description                                                 | Required | Default                |
-| ----------------- | ----------------------------------------------------------- | -------- | ---------------------- |
-| `repository-path` | Path to the repository root (defaults to current directory) | No       | `.`                    |
-| `action-pattern`  | Glob pattern to find action files                           | No       | `**/action.{yml,yaml}` |
-| `docs-pattern`    | Glob pattern to find documentation files                    | No       | `**/*.md`              |
+| Input              | Description                                                                                | Required | Default                   |
+| ------------------ | ------------------------------------------------------------------------------------------ | -------- | ------------------------- |
+| `token`            | GitHub token for API access to check fork relationships (enables fork detection)           | No       | `${{ github.token }}`     |
+| `repository`       | Repository name in 'owner/repo' format (auto-detected if not provided)                    | No       | Auto-detected             |
+| `repository-path`  | Path to the repository root (defaults to current directory)                                | No       | `.`                       |
+| `action-pattern`   | Glob pattern to find action files                                                          | No       | `{**/,}action.{yml,yaml}` |
+| `docs-pattern`     | Glob pattern to find documentation files                                                   | No       | `**/*.md`                 |
 
 ## Outputs
 
@@ -67,16 +86,19 @@ Customize which files to scan:
 
 ## How It Works
 
-1. **Action Discovery**: The action scans your repository for all `action.yml` and `action.yaml` files using the specified pattern
-2. **Schema Loading**: Each action file is parsed to extract:
+1. **Fork Detection** (optional): If a token is provided, checks if the repository is a fork and identifies the parent repository
+2. **Action Discovery**: The action scans your repository for all `action.yml` and `action.yaml` files using the specified pattern
+3. **Schema Loading**: Each action file is parsed to extract:
    - Input names, types, and allowed values
    - Output names
    - Required/optional status
-3. **Documentation Scanning**: Markdown files are scanned for YAML code blocks (marked with ` ```yaml ` or ` ```yml `)
-4. **Example Validation**: For each code block containing action usage (identified by `uses: owner/repo@version`):
+   - Alternative names (fork and parent repository names)
+4. **Documentation Scanning**: Markdown files are scanned for YAML code blocks (marked with ` ```yaml ` or ` ```yml `)
+5. **Example Validation**: For each code block containing action usage (identified by `uses: owner/repo@version`):
    - Validates that all `with:` inputs are defined in the action schema
    - Checks input types (boolean, number) when specified
    - Validates input values against allowed options when specified
+   - Validates output references (e.g., `steps.my-step.outputs.result`) exist in the action schema
    - Skips validation for expressions containing `${{ ... }}`
 5. **Error Reporting**: Reports errors using GitHub Actions workflow commands with file, line, and column information
 
@@ -128,6 +150,17 @@ Expressions are allowed and skipped:
   with:
     environment: ${{ inputs.env }} # OK: Expression
     debug: ${{ github.event.inputs.debug }} # OK: Expression
+```
+
+Output validation example:
+
+```yaml
+- uses: owner/my-action@v1
+  id: deploy
+  with:
+    environment: production
+- run: echo "Deployed to ${{ steps.deploy.outputs.deployment-url }}" # OK: Valid output
+- run: echo "${{ steps.deploy.outputs.invalid }}" # Error: Unknown output 'invalid'
 ```
 
 ## Self-Testing

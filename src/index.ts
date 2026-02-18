@@ -6,10 +6,12 @@ import path from 'node:path'
 import { findActionFiles } from './action-finder.js'
 import { loadActionSchema } from './action-schema.js'
 import { findMarkdownFiles } from './markdown-finder.js'
+import { detectForkParent } from './fork-detector.js'
 import {
   extractYamlCodeBlocks,
   findReferencedSteps,
   validateStep,
+  validateOutputReferences,
 } from './validator.js'
 
 const execAsync = promisify(exec)
@@ -41,6 +43,7 @@ async function detectRepositoryName(): Promise<string> {
  * Main runner function
  */
 export async function run(): Promise<void> {
+  const token = core.getInput('token') || process.env.GITHUB_TOKEN || ''
   let repository =
     core.getInput('repository') || process.env.GITHUB_REPOSITORY || ''
 
@@ -59,6 +62,9 @@ export async function run(): Promise<void> {
   core.info(`Action pattern: ${actionPattern}`)
   core.info(`Docs pattern: ${docsPattern}`)
 
+  // Detect if this is a fork and get parent repository
+  const parentRepo = await detectForkParent(repository, token)
+
   // Find all action files
   const actionFiles = await findActionFiles(repositoryPath, actionPattern)
   core.info(`Found ${actionFiles.length} action file(s)`)
@@ -75,12 +81,22 @@ export async function run(): Promise<void> {
       const schema = await loadActionSchema(
         actionFile,
         repositoryPath,
-        repository
+        repository,
+        parentRepo
       )
       schemas.set(schema.actionReference, schema)
+
+      // Also register alternative names
+      for (const altName of schema.alternativeNames) {
+        schemas.set(altName, schema)
+      }
+
       core.info(
         `Loaded schema for ${schema.actionReference} from ${actionFile}`
       )
+      if (schema.alternativeNames.length > 0) {
+        core.info(`  Alternative names: ${schema.alternativeNames.join(', ')}`)
+      }
     } catch (error) {
       core.warning(
         `Failed to load action schema from ${actionFile}: ${error instanceof Error ? error.message : String(error)}`
@@ -134,6 +150,22 @@ export async function run(): Promise<void> {
             })
           }
         }
+
+        // Validate output references in the block
+        const outputErrors = validateOutputReferences(
+          block.text,
+          steps,
+          schemas,
+          block.contentStartLine
+        )
+        for (const error of outputErrors) {
+          totalErrors++
+          core.error(error.message, {
+            file: relativeFilePath,
+            startLine: error.line,
+            startColumn: error.column,
+          })
+        }
       }
     } catch (error) {
       core.warning(
@@ -155,6 +187,7 @@ export async function run(): Promise<void> {
 
 export interface ActionSchema {
   actionReference: string
+  alternativeNames: string[] // Alternative names (e.g., parent repo for forks)
   inputs: Map<
     string,
     {

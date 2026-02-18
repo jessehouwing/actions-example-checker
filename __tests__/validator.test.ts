@@ -3,6 +3,7 @@ import {
   extractYamlCodeBlocks,
   findReferencedSteps,
   validateStep,
+  validateOutputReferences,
 } from '../src/validator.js'
 import { ActionSchema } from '../src/index.js'
 
@@ -55,6 +56,7 @@ content
 describe('findReferencedSteps', () => {
   const createSchema = (repo: string): ActionSchema => ({
     actionReference: repo,
+    alternativeNames: [],
     inputs: new Map(),
     outputs: new Set(),
     sourceFile: 'action.yml',
@@ -144,6 +146,7 @@ describe('validateStep', () => {
   it('should report unknown inputs', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       inputs: new Map([['valid-input', { required: true }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
@@ -151,6 +154,7 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         'valid-input': 'value',
@@ -168,6 +172,7 @@ describe('validateStep', () => {
   it('should validate boolean types', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
@@ -175,6 +180,7 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         debug: 'yes',
@@ -191,6 +197,7 @@ describe('validateStep', () => {
   it('should accept valid boolean values', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
@@ -198,6 +205,7 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         debug: 'true',
@@ -213,6 +221,7 @@ describe('validateStep', () => {
   it('should validate number types', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       inputs: new Map([['timeout', { required: false, type: 'number' }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
@@ -220,6 +229,7 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         timeout: 'not-a-number',
@@ -236,6 +246,7 @@ describe('validateStep', () => {
   it('should accept valid number values', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       inputs: new Map([['timeout', { required: false, type: 'number' }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
@@ -243,6 +254,7 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         timeout: '300',
@@ -258,6 +270,7 @@ describe('validateStep', () => {
   it('should validate input options', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       inputs: new Map([
         [
           'environment',
@@ -273,6 +286,7 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         environment: 'prod',
@@ -289,6 +303,7 @@ describe('validateStep', () => {
   it('should accept valid option values', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       inputs: new Map([
         [
           'environment',
@@ -304,6 +319,7 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         environment: 'production',
@@ -319,6 +335,7 @@ describe('validateStep', () => {
   it('should skip validation for expressions', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       inputs: new Map([
         ['debug', { required: false, type: 'boolean' }],
         [
@@ -335,6 +352,7 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         debug: '${{ inputs.debug }}',
@@ -351,6 +369,7 @@ describe('validateStep', () => {
   it('should skip validation for partial expressions', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       inputs: new Map([
         ['environment', { required: true, options: ['dev', 'prod'] }],
       ]),
@@ -360,6 +379,7 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         environment: 'prefix-${{ inputs.suffix }}',
@@ -375,6 +395,7 @@ describe('validateStep', () => {
   it('should validate multiple errors in one step', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
@@ -382,6 +403,7 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         debug: 'yes',
@@ -399,6 +421,8 @@ describe('validateStep', () => {
   it('should handle steps with no inputs', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
+      alternativeNames: [],
       inputs: new Map(),
       outputs: new Set(),
       sourceFile: 'action.yml',
@@ -406,6 +430,7 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
+      alternativeNames: [],
       uses: 'owner/repo@v1',
       lineInBlock: 1,
     }
@@ -413,5 +438,117 @@ describe('validateStep', () => {
     const errors = validateStep(step, schema, 1)
 
     expect(errors).toHaveLength(0)
+  })
+})
+
+describe('validateOutputReferences', () => {
+  const createSchema = (outputs: string[]): ActionSchema => ({
+    actionReference: 'owner/repo',
+    alternativeNames: [],
+    alternativeNames: [],
+    inputs: new Map(),
+    outputs: new Set(outputs),
+    sourceFile: 'action.yml',
+  })
+
+  it('should validate output references in YAML block', () => {
+    const yaml = `
+- uses: owner/repo@v1
+  id: my-step
+- run: echo \${{ steps.my-step.outputs.result }}
+`
+    const schema = createSchema(['result', 'status'])
+    const schemas = new Map([['owner/repo', schema]])
+    const steps = findReferencedSteps(yaml, schemas)
+
+    const errors = validateOutputReferences(yaml, steps, schemas, 1)
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it('should report unknown output references', () => {
+    const yaml = `
+- uses: owner/repo@v1
+  id: my-step
+- run: echo \${{ steps.my-step.outputs.invalid }}
+`
+    const schema = createSchema(['result', 'status'])
+    const schemas = new Map([['owner/repo', schema]])
+    const steps = findReferencedSteps(yaml, schemas)
+
+    const errors = validateOutputReferences(yaml, steps, schemas, 1)
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0].message).toContain('invalid')
+    expect(errors[0].message).toContain('result, status')
+  })
+
+  it('should handle multiple output references', () => {
+    const yaml = `
+- uses: owner/repo@v1
+  id: step1
+- uses: owner/repo@v1
+  id: step2
+- run: |
+    echo \${{ steps.step1.outputs.result }}
+    echo \${{ steps.step2.outputs.status }}
+    echo \${{ steps.step1.outputs.invalid }}
+`
+    const schema = createSchema(['result', 'status'])
+    const schemas = new Map([['owner/repo', schema]])
+    const steps = findReferencedSteps(yaml, schemas)
+
+    const errors = validateOutputReferences(yaml, steps, schemas, 1)
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0].message).toContain('invalid')
+  })
+
+  it('should skip validation for steps without IDs', () => {
+    const yaml = `
+- uses: owner/repo@v1
+- run: echo \${{ steps.unknown.outputs.result }}
+`
+    const schema = createSchema(['result'])
+    const schemas = new Map([['owner/repo', schema]])
+    const steps = findReferencedSteps(yaml, schemas)
+
+    const errors = validateOutputReferences(yaml, steps, schemas, 1)
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it('should handle actions with no outputs', () => {
+    const yaml = `
+- uses: owner/repo@v1
+  id: my-step
+- run: echo \${{ steps.my-step.outputs.result }}
+`
+    const schema = createSchema([])
+    const schemas = new Map([['owner/repo', schema]])
+    const steps = findReferencedSteps(yaml, schemas)
+
+    const errors = validateOutputReferences(yaml, steps, schemas, 1)
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0].message).toContain('Available outputs: none')
+  })
+
+  it('should report correct line numbers', () => {
+    const yaml = `line 1
+line 2
+- uses: owner/repo@v1
+  id: my-step
+line 5
+- run: echo \${{ steps.my-step.outputs.invalid }}
+`
+    const schema = createSchema(['result'])
+    const schemas = new Map([['owner/repo', schema]])
+    const steps = findReferencedSteps(yaml, schemas)
+
+    const errors = validateOutputReferences(yaml, steps, schemas, 10)
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0].line).toBe(15) // Line 6 in block + blockStartLine 10 - 1
   })
 })
