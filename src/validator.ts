@@ -289,8 +289,10 @@ export function validateStep(
       const inputSchema = schema.inputs.get(inputName)
 
       if (!inputSchema) {
-        const line =
-          step.withLines?.get(inputName) || blockStartLine + step.lineInBlock
+        const inputLine = step.withLines?.get(inputName)
+        const line = inputLine
+          ? blockStartLine + inputLine - 1
+          : blockStartLine + step.lineInBlock - 1
         errors.push({
           message: `Unknown input '${inputName}' for action '${step.uses}' (schema: ${schema.sourceFile})`,
           line,
@@ -299,8 +301,10 @@ export function validateStep(
         continue
       }
 
-      const line =
-        step.withLines?.get(inputName) || blockStartLine + step.lineInBlock
+      const inputLine = step.withLines?.get(inputName)
+      const line = inputLine
+        ? blockStartLine + inputLine - 1
+        : blockStartLine + step.lineInBlock - 1
 
       // Check if this is a multi-value input
       if (inputSchema.items && inputSchema.separators) {
@@ -310,6 +314,7 @@ export function validateStep(
             inputName,
             inputValue,
             {
+              required: inputSchema.required,
               separators: inputSchema.separators,
               items: inputSchema.items,
             },
@@ -338,12 +343,23 @@ export function validateStep(
 }
 
 /**
+ * Truncate a value for display in error messages
+ */
+function truncateValue(value: string, maxLength: number = 100): string {
+  if (value.length <= maxLength) {
+    return value
+  }
+  return value.substring(0, maxLength) + '...'
+}
+
+/**
  * Validate a single-value input
  */
 function validateSingleValueInput(
   inputName: string,
   inputValue: unknown,
   inputSchema: {
+    required: boolean
     type?: string
     options?: string[]
     match?: RegExp
@@ -361,6 +377,13 @@ function validateSingleValueInput(
     return errors
   }
 
+  // Skip validation for optional inputs with empty string values
+  // This treats empty strings as "not provided" for optional inputs,
+  // allowing users to explicitly set empty values without validation errors
+  if (!inputSchema.required && normalizedValue === '') {
+    return errors
+  }
+
   // Validate input type
   if (inputSchema.type) {
     // Skip validation for 'any' type
@@ -373,7 +396,7 @@ function validateSingleValueInput(
 
       if (boolValue === null) {
         errors.push({
-          message: `Input '${inputName}' for action '${uses}' expects a boolean value, but got '${normalizedValue}'`,
+          message: `Input '${inputName}' for action '${uses}' expects a boolean value, but got '${truncateValue(normalizedValue)}'`,
           line,
           column: 1,
         })
@@ -383,7 +406,7 @@ function validateSingleValueInput(
 
       if (numValue === null) {
         errors.push({
-          message: `Input '${inputName}' for action '${uses}' expects a number value, but got '${normalizedValue}'`,
+          message: `Input '${inputName}' for action '${uses}' expects a number value, but got '${truncateValue(normalizedValue)}'`,
           line,
           column: 1,
         })
@@ -395,7 +418,7 @@ function validateSingleValueInput(
         !validateMatch(normalizedValue, inputSchema.match)
       ) {
         errors.push({
-          message: `Input '${inputName}' for action '${uses}' does not match required pattern: ${inputSchema.match}`,
+          message: `Input '${inputName}' for action '${uses}' has value '${truncateValue(normalizedValue)}' which does not match required pattern: ${inputSchema.match}`,
           line,
           column: 1,
         })
@@ -405,7 +428,7 @@ function validateSingleValueInput(
       if (inputSchema.options && inputSchema.options.length > 0) {
         if (!inputSchema.options.includes(normalizedValue)) {
           errors.push({
-            message: `Input '${inputName}' for action '${uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
+            message: `Input '${inputName}' for action '${uses}' expects one of [${inputSchema.options.join(', ')}], but got '${truncateValue(normalizedValue)}'`,
             line,
             column: 1,
           })
@@ -417,7 +440,7 @@ function validateSingleValueInput(
     if (inputSchema.options && inputSchema.options.length > 0) {
       if (!inputSchema.options.includes(normalizedValue)) {
         errors.push({
-          message: `Input '${inputName}' for action '${uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
+          message: `Input '${inputName}' for action '${uses}' expects one of [${inputSchema.options.join(', ')}], but got '${truncateValue(normalizedValue)}'`,
           line,
           column: 1,
         })
@@ -435,6 +458,7 @@ function validateMultiValueInput(
   inputName: string,
   inputValue: unknown,
   inputSchema: {
+    required: boolean
     separators: string[]
     items: {
       type?: string
@@ -452,6 +476,16 @@ function validateMultiValueInput(
 
   // Skip validation for expressions or null (non-literal expressions)
   if (items === null) {
+    return errors
+  }
+
+  // Skip validation for optional inputs with empty or no items
+  // This treats empty strings as "not provided" for optional multi-value inputs,
+  // allowing users to explicitly set empty values without validation errors
+  if (
+    !inputSchema.required &&
+    (items.length === 0 || items.every((item) => item === ''))
+  ) {
     return errors
   }
 
@@ -500,7 +534,7 @@ function validateMultiValueInput(
           !validateMatch(normalizedItem, itemSchema.match)
         ) {
           errors.push({
-            message: `Input '${inputName}' for action '${uses}': item ${i + 1} ('${normalizedItem}') does not match required pattern: ${itemSchema.match}`,
+            message: `Input '${inputName}' for action '${uses}': item ${i + 1} ('${truncateValue(normalizedItem)}') does not match required pattern: ${itemSchema.match}`,
             line,
             column: 1,
           })
@@ -510,7 +544,7 @@ function validateMultiValueInput(
         if (itemSchema.options && itemSchema.options.length > 0) {
           if (!itemSchema.options.includes(normalizedItem)) {
             errors.push({
-              message: `Input '${inputName}' for action '${uses}': item ${i + 1} ('${normalizedItem}') expects one of [${itemSchema.options.join(', ')}]`,
+              message: `Input '${inputName}' for action '${uses}': item ${i + 1} ('${truncateValue(normalizedItem)}') expects one of [${itemSchema.options.join(', ')}]`,
               line,
               column: 1,
             })

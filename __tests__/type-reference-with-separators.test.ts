@@ -50,10 +50,7 @@ inputs:
         expect(inputDef?.separators).toEqual(['newline', ','])
 
         // Resolve the type to check the merged result
-        const resolved = resolveTypeDefinition(
-          inputDef!,
-          schema?.types || {}
-        )
+        const resolved = resolveTypeDefinition(inputDef!, schema?.types || {})
         expect(resolved.type).toBe('string')
         expect(resolved.match).toBeDefined()
         expect(resolved.match?.test('v1.0.0')).toBe(true)
@@ -91,10 +88,7 @@ inputs:
         expect(inputDef?.separators).toBe(',')
 
         // Resolve to check override worked
-        const resolved = resolveTypeDefinition(
-          inputDef!,
-          schema?.types || {}
-        )
+        const resolved = resolveTypeDefinition(inputDef!, schema?.types || {})
         expect(resolved.type).toBe('string')
         expect(resolved.match).toBeDefined()
         expect(resolved.separators).toEqual([',']) // Overridden, not ['newline']
@@ -204,10 +198,7 @@ inputs:
 
       const inputDef = schema?.inputs?.['my-input']
       if (typeof inputDef !== 'string') {
-        const resolved = resolveTypeDefinition(
-          inputDef!,
-          schema?.types || {}
-        )
+        const resolved = resolveTypeDefinition(inputDef!, schema?.types || {})
         expect(resolved.type).toBe('string')
         expect(resolved.match).toBeDefined()
         expect(resolved.match?.test('abc')).toBe(true)
@@ -241,10 +232,7 @@ inputs:
 
       const inputDef = schema?.inputs?.['extended-version']
       if (typeof inputDef !== 'string') {
-        const resolved = resolveTypeDefinition(
-          inputDef!,
-          schema?.types || {}
-        )
+        const resolved = resolveTypeDefinition(inputDef!, schema?.types || {})
         expect(resolved.type).toBe('string')
         expect(resolved.match).toBeDefined()
         expect(resolved.match?.test('v1.2.3')).toBe(true)
@@ -280,10 +268,7 @@ inputs:
 
       const inputDef = schema?.inputs?.['tags']
       if (typeof inputDef !== 'string') {
-        const resolved = resolveTypeDefinition(
-          inputDef!,
-          schema?.types || {}
-        )
+        const resolved = resolveTypeDefinition(inputDef!, schema?.types || {})
         expect(resolved.type).toBe('string')
         expect(resolved.separators).toEqual([','])
         expect(resolved.items).toBeDefined()

@@ -213,7 +213,7 @@ function validateTypeDefinition(def: unknown): TypeDefinition {
               // Single value - convert to string and wrap in array
               alternativesArray = [convertToString(choiceOpt.alternatives)]
             }
-            
+
             return {
               value: choiceOpt.value,
               description: choiceOpt.description as string | undefined,
@@ -319,7 +319,12 @@ export function resolveTypeDefinition(
   } else {
     // Base type is a base type, start with it
     resolvedBase = {
-      type: baseTypeDef.type as 'boolean' | 'number' | 'string' | 'choice' | 'any',
+      type: baseTypeDef.type as
+        | 'boolean'
+        | 'number'
+        | 'string'
+        | 'choice'
+        | 'any',
     }
   }
 
