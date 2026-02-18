@@ -1,0 +1,43 @@
+name: GitHub Actions Example Checker
+description: Validate examples in documentation against action.yml schemas
+author: Jesse Houwing
+branding:
+  icon: check-circle
+  color: blue
+
+inputs:
+  token:
+    description: >
+      GitHub token for API access to check fork relationships. When provided,
+      the action will detect if the repository is a fork and allow examples to
+      reference either the fork name or the upstream parent name.
+    required: false
+    default: ${{ github.token }}
+  repository:
+    description: >
+      Repository name in 'owner/repo' format. Used to match action references
+      in documentation. If not provided, will be auto-detected from git or
+      GITHUB_REPOSITORY environment variable.
+    required: false
+  repository-path:
+    description: Path to the repository root (defaults to current directory)
+    required: false
+    default: .
+  action-pattern:
+    description: Glob pattern to find action files (e.g., **/action.{yml,yaml})
+    required: false
+    default: '{**/,}action.{yml,yaml}'
+  docs-pattern:
+    description: Glob pattern to find documentation files (e.g., **/*.md)
+    required: false
+    default: '**/*.md'
+
+outputs:
+  errors-found:
+    description: Number of validation errors found
+  files-checked:
+    description: Number of documentation files checked
+
+runs:
+  using: node24
+  main: dist/index.js
