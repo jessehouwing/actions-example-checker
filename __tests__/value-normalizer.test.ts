@@ -89,32 +89,39 @@ describe('normalizeValue', () => {
     expect(normalizeValue('${{ "double quoted" }}')).toBe('${{ "double quoted" }}')
   })
 
-  it('should handle literal expressions with optional whitespace', () => {
-    // Lots of whitespace around the literal
-    expect(normalizeValue('${{                         1                              }}')).toBe('${{                         1                              }}')
+  it('should collapse whitespace in literal expressions', () => {
+    // Lots of whitespace around the literal - should be collapsed
+    expect(normalizeValue('${{                         1                              }}')).toBe('${{ 1 }}')
     
-    // No spaces
+    // No spaces - normalized to have standard spacing
     expect(normalizeValue('${{1}}')).toBe('${{1}}')
     
-    // Mixed whitespace with different literals
-    expect(normalizeValue('${{  null  }}')).toBe('${{  null  }}')
+    // Mixed whitespace with different literals - all collapsed
+    expect(normalizeValue('${{  null  }}')).toBe('${{ null }}')
     expect(normalizeValue('${{true}}')).toBe('${{true}}')
-    expect(normalizeValue('${{    false    }}')).toBe('${{    false    }}')
-    expect(normalizeValue("${{  'string'  }}")).toBe("${{  'string'  }}")
-    expect(normalizeValue('${{   -9.2   }}')).toBe('${{   -9.2   }}')
+    expect(normalizeValue('${{    false    }}')).toBe('${{ false }}')
+    expect(normalizeValue("${{  'string'  }}")).toBe("${{ 'string' }}")
+    expect(normalizeValue('${{   -9.2   }}')).toBe('${{ -9.2 }}')
     
-    // Tabs and multiple spaces
-    expect(normalizeValue('${{ \t\t 42 \t\t }}')).toBe('${{ \t\t 42 \t\t }}')
+    // Tabs and multiple spaces - all collapsed
+    expect(normalizeValue('${{ \t\t 42 \t\t }}')).toBe('${{ 42 }}')
+    
+    // Multiline expressions - collapsed to single line
+    expect(normalizeValue('${{ \n  1  \n }}')).toBe('${{ 1 }}')
+    const multiline = `${{
+      711
+    }}`
+    expect(normalizeValue(multiline)).toBe('${{ 711 }}')
   })
 
-  it('should handle quoted literal expressions', () => {
-    // Double-quoted expression
+  it('should handle quoted literal expressions with whitespace collapse', () => {
+    // Double-quoted expression - quotes removed, whitespace collapsed
     expect(normalizeValue('"${{1}}"')).toBe('${{1}}')
     
-    // Single-quoted expression
+    // Single-quoted expression - quotes removed, whitespace collapsed
     expect(normalizeValue("'${{1}}'")).toBe('${{1}}')
     
-    // Double-quoted with spaces
+    // Double-quoted with spaces - whitespace collapsed
     expect(normalizeValue('"${{ 42 }}"')).toBe('${{ 42 }}')
     
     // Quoted null
@@ -122,6 +129,9 @@ describe('normalizeValue', () => {
     
     // Quoted boolean
     expect(normalizeValue("'${{ true }}'")).toBe('${{ true }}')
+    
+    // Quoted with lots of whitespace - collapsed
+    expect(normalizeValue('"${{       false       }}"')).toBe('${{ false }}')
   })
 
   it('should handle null and undefined', () => {
