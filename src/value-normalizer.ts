@@ -36,7 +36,8 @@ export function normalizeValue(value: unknown): string | null {
 
   // Re-join lines (for folded scalars, collapse to single line)
   // This is already handled by YAML parser, but we normalize just in case
-  str = str.replace(/\n+/g, ' ').trim()
+  // Replace multiple newlines with single space and collapse multiple spaces
+  str = str.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim()
 
   return str
 }
