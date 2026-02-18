@@ -38912,8 +38912,8 @@ function validateSchemaDefinition(schema) {
 function validateTypeDefinition(def) {
     const typeDef = def;
     const type = String(typeDef.type || 'string').toLowerCase();
-    if (!['boolean', 'number', 'string', 'choice'].includes(type)) {
-        throw new Error(`Invalid type: ${type}. Must be one of: boolean, number, string, choice`);
+    if (!['boolean', 'number', 'string', 'choice', 'any'].includes(type)) {
+        throw new Error(`Invalid type: ${type}. Must be one of: boolean, number, string, choice, any`);
     }
     const result = {
         type: type,
@@ -38939,9 +38939,17 @@ function validateTypeDefinition(def) {
         (!result.options || result.options.length === 0)) {
         throw new Error(`choice type requires options array`);
     }
-    // Validate separator for multi-value inputs
-    if (typeDef.separator && typeof typeDef.separator === 'string') {
-        result.separator = typeDef.separator;
+    // Validate separators for multi-value inputs
+    if (typeDef.separators) {
+        if (typeof typeDef.separators === 'string') {
+            result.separators = typeDef.separators;
+        }
+        else if (Array.isArray(typeDef.separators)) {
+            result.separators = typeDef.separators.map(String);
+        }
+        else {
+            throw new Error(`separators must be a string or array of strings, got ${typeof typeDef.separators}`);
+        }
     }
     // Validate items for multi-value inputs
     if (typeDef.items) {
@@ -38952,9 +38960,9 @@ function validateTypeDefinition(def) {
             throw new Error(`items must be a type definition object`);
         }
     }
-    // If items is specified, separator should also be specified (or default to newline)
-    if (result.items && !result.separator) {
-        result.separator = 'newline'; // default separator
+    // If items is specified, separators should also be specified (or default to newline)
+    if (result.items && !result.separators) {
+        result.separators = 'newline'; // default separators
     }
     return result;
 }
@@ -38981,9 +38989,14 @@ function resolveTypeDefinition(def, customTypes) {
     if (def.options) {
         resolved.options = [...def.options];
     }
-    // Copy separator if present
-    if (def.separator) {
-        resolved.separator = def.separator;
+    // Normalize separators to array format
+    if (def.separators) {
+        if (typeof def.separators === 'string') {
+            resolved.separators = [def.separators];
+        }
+        else if (Array.isArray(def.separators)) {
+            resolved.separators = [...def.separators];
+        }
     }
     // Recursively resolve items if present
     if (def.items) {
@@ -39047,7 +39060,7 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
                 let inputType;
                 let options;
                 let match;
-                let separator;
+                let separators;
                 let items;
                 // Check for explicit type in action.yml
                 if (typeof def.type === 'string') {
@@ -39066,7 +39079,7 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
                     inputType = resolvedType.type;
                     options = resolvedType.options;
                     match = resolvedType.match;
-                    separator = resolvedType.separator;
+                    separators = resolvedType.separators;
                     if (resolvedType.items) {
                         items = {
                             type: resolvedType.items.type,
@@ -39080,7 +39093,7 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
                     type: inputType,
                     options,
                     match,
-                    separator,
+                    separators,
                     items,
                 });
             }
@@ -44059,13 +44072,13 @@ function validateMatch(value, pattern) {
     return pattern.test(value);
 }
 /**
- * Split a multi-value input using the specified separator
+ * Split a multi-value input using the specified separator(s)
  *
  * @param value - The input value to split
- * @param separator - The separator to use ('newline', ',', ';', etc.)
+ * @param separators - Array of separators to use (e.g., [','], [',', ';'], ['newline'])
  * @returns Array of split values, or null if value contains non-literal expressions
  */
-function splitMultiValue(value, separator) {
+function splitMultiValue(value, separators) {
     if (value === null || value === undefined) {
         return null;
     }
@@ -44079,10 +44092,14 @@ function splitMultiValue(value, separator) {
     str = str.trim();
     // Remove enclosing quotes
     str = removeEnclosingQuotes(str);
-    // For newline separator, split on actual newlines
-    if (separator === 'newline' || separator === '\\n') {
-        // Split on newlines and filter out empty lines
-        return str
+    // Check if any separator is 'newline' or '\n'
+    const hasNewlineSeparator = separators.some((sep) => sep === 'newline' || sep === '\\n');
+    // Get non-newline separators
+    const nonNewlineSeparators = separators.filter((sep) => sep !== 'newline' && sep !== '\\n');
+    let items = [];
+    // If we have newline separator, split by newlines first
+    if (hasNewlineSeparator) {
+        items = str
             .split('\n')
             .map((line) => {
             // Remove trailing comments from each line
@@ -44090,19 +44107,38 @@ function splitMultiValue(value, separator) {
             return line;
         })
             .filter((line) => line.length > 0);
+        // If we also have other separators, split each line by those separators
+        if (nonNewlineSeparators.length > 0) {
+            const allItems = [];
+            for (const line of items) {
+                const escapedSeparators = nonNewlineSeparators.map((sep) => sep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                const separatorPattern = new RegExp(`(${escapedSeparators.join('|')})`);
+                const lineItems = line
+                    .split(separatorPattern)
+                    .filter((item, index) => {
+                    // Filter out the separators themselves (odd indices)
+                    return index % 2 === 0;
+                })
+                    .map((item) => removeTrailingComment(item.trim()))
+                    .filter((item) => item.length > 0);
+                allItems.push(...lineItems);
+            }
+            return allItems;
+        }
+        return items;
     }
-    // For other separators, split on the separator
-    // Handle escaped separators by temporarily replacing them
-    const escapePlaceholder = '\x00ESCAPED_SEP\x00';
-    const escapedSep = `\\${separator}`;
-    // Replace escaped separators with placeholder
-    str = str.replace(new RegExp(escapedSep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), escapePlaceholder);
-    // Split on the separator
-    const items = str
-        .split(separator)
+    // For other separators (no newline), split on any of the separators
+    // Build a regex pattern that matches any of the separators
+    const escapedSeparators = separators.map((sep) => sep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const separatorPattern = new RegExp(`(${escapedSeparators.join('|')})`);
+    // Split on any separator
+    items = str
+        .split(separatorPattern)
+        .filter((item, index) => {
+        // Filter out the separators themselves (odd indices)
+        return index % 2 === 0;
+    })
         .map((item) => {
-        // Restore escaped separators
-        item = item.replace(new RegExp(escapePlaceholder, 'g'), separator);
         // Remove trailing comments and trim
         item = removeTrailingComment(item.trim());
         return item;
@@ -44321,10 +44357,10 @@ function validateStep(step, schema, blockStartLine) {
             }
             const line = step.withLines?.get(inputName) || blockStartLine + step.lineInBlock;
             // Check if this is a multi-value input
-            if (inputSchema.items && inputSchema.separator) {
+            if (inputSchema.items && inputSchema.separators) {
                 // Validate as multi-value input - TypeScript now knows both are defined
                 errors.push(...validateMultiValueInput(inputName, inputValue, {
-                    separator: inputSchema.separator,
+                    separators: inputSchema.separators,
                     items: inputSchema.items,
                 }, step.uses, line));
             }
@@ -44350,6 +44386,10 @@ function validateSingleValueInput(inputName, inputValue, inputSchema, uses, line
     }
     // Validate input type
     if (inputSchema.type) {
+        // Skip validation for 'any' type
+        if (inputSchema.type === 'any') {
+            return errors;
+        }
         if (inputSchema.type === 'boolean') {
             const boolValue = normalizeBoolean(inputValue);
             if (boolValue === null) {
@@ -44411,8 +44451,8 @@ function validateSingleValueInput(inputName, inputValue, inputSchema, uses, line
  */
 function validateMultiValueInput(inputName, inputValue, inputSchema, uses, line) {
     const errors = [];
-    // Split the value using the specified separator
-    const items = splitMultiValue(inputValue, inputSchema.separator);
+    // Split the value using the specified separators
+    const items = splitMultiValue(inputValue, inputSchema.separators);
     // Skip validation for expressions or null (non-literal expressions)
     if (items === null) {
         return errors;
@@ -44423,6 +44463,10 @@ function validateMultiValueInput(inputName, inputValue, inputSchema, uses, line)
         const itemSchema = inputSchema.items;
         // Validate item type
         if (itemSchema.type) {
+            // Skip validation for 'any' type
+            if (itemSchema.type === 'any') {
+                continue;
+            }
             if (itemSchema.type === 'boolean') {
                 const boolValue = normalizeBoolean(item);
                 if (boolValue === null) {
