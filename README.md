@@ -11,14 +11,17 @@ A GitHub Action that validates examples in documentation against your action's s
 - 📝 **Documentation Validation**: Scans markdown files for YAML code blocks containing action usage examples
 - 📋 **Description Examples**: Validates YAML examples embedded in action.yml descriptions (root and input descriptions)
 - ✅ **Input Validation**: Checks that all inputs used in examples are defined in the action schema
-- 🔢 **Type Checking**: Validates input types (boolean, number) when specified
+- 🔢 **Type Checking**: Validates input types (boolean, number, string, choice) when specified
 - 🎯 **Value Validation**: Checks that input values match allowed options when specified
+- 🔍 **Pattern Matching**: Validates string inputs against regex patterns (via schema file)
+- 📐 **Custom Types**: Define reusable types in schema file for consistent validation
 - 🚫 **Expression Handling**: Skips validation for values containing GitHub Actions expressions (`${{ ... }}`)
 - 📊 **Output Validation**: Ensures referenced outputs exist in the action schema
 - 🔀 **Fork Support**: Automatically detects forks and validates examples using either fork or parent repository names
 - 💬 **Comment Support**: Handles trailing `#` comments in YAML examples
 - 📄 **Multi-line Values**: Supports YAML literal (`|`) and folded (`>`) block scalars
 - 🎯 **Precise Error Reporting**: Reports errors with file, line, and column information using GitHub Actions workflow commands
+- 📋 **Schema File Support**: Optional `action.schema.yml` for advanced input/output validation
 
 ## Usage
 
@@ -97,6 +100,128 @@ A GitHub Action that validates examples in documentation against your action's s
     # Default: **/*.md
     docs-pattern: ''
 ```
+
+<!-- end usage -->
+
+## Advanced Validation with Schema Files
+
+For more precise validation, you can create an optional `action.schema.yml` or `action.schema.yaml` file alongside your `action.yml`. This schema file allows you to define:
+
+- **Type validation**: `boolean`, `number`, `string`, or `choice`
+- **Pattern matching**: Validate string inputs against regex patterns
+- **Choice validation**: Specify allowed values for inputs
+- **Custom types**: Define reusable types for consistency
+
+### Schema File Example
+
+Create `action.schema.yml` next to your `action.yml`:
+
+```yaml
+# Define reusable custom types
+types:
+  url:
+    type: string
+    match: "^https?://.*"
+  semver:
+    type: string
+    match: "^\\d+\\.\\d+\\.\\d+$"
+
+# Validate inputs
+inputs:
+  environment:
+    type: choice
+    options:
+      - development
+      - staging
+      - production
+  
+  version:
+    type: semver  # Reference to custom type
+  
+  api-url:
+    type: url  # Reference to custom type
+  
+  timeout:
+    type: number
+  
+  dry-run:
+    type: boolean
+  
+  log-level:
+    type: string
+    match: "^(debug|info|warn|error)$"
+
+# Validate outputs
+outputs:
+  deployment-id:
+    type: string
+  deployment-url:
+    type: url
+```
+
+### Type Definitions
+
+#### Boolean Type
+Accepts truthy/falsy values:
+- **Truthy**: `true`, `yes`, `y`, `1`, `on`
+- **Falsy**: `false`, `no`, `n`, `0`, `off`, `` (empty)
+
+```yaml
+inputs:
+  enabled:
+    type: boolean
+```
+
+#### Number Type
+Accepts numeric values including scientific notation:
+```yaml
+inputs:
+  timeout:
+    type: number
+```
+
+#### String Type with Pattern
+Validates strings against regex patterns:
+```yaml
+inputs:
+  email:
+    type: string
+    match: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+```
+
+Regex patterns support both formats:
+- Plain string: `"^pattern$"`
+- With flags: `"/pattern/i"` (case-insensitive)
+
+#### Choice Type
+Restricts input to specific values:
+```yaml
+inputs:
+  log-level:
+    type: choice
+    options:
+      - debug
+      - info
+      - warning
+      - error
+```
+
+### Value Normalization
+
+Before validation, values are normalized by:
+- Removing leading/trailing whitespace
+- Removing enclosing quotes (`"..."` or `'...'`)
+- Removing trailing comments (`value # comment`)
+- Unindenting multiline values
+- Collapsing multiline values to single line
+- Skipping non-literal expressions (`${{ secrets.TOKEN }}`)
+
+### Backward Compatibility
+
+Schema files are optional. Without a schema file:
+- Explicit `type` field in `action.yml` is still respected
+- Basic validation continues to work
+- No breaking changes to existing workflows
 
 <!-- end usage -->
 
@@ -180,15 +305,17 @@ For monorepo with multiple actions:
    - Output names
    - Required/optional status
    - Alternative names (fork and parent repository names)
+   - If an `action.schema.yml` exists, loads advanced validation rules (types, patterns, custom types)
 4. **Documentation Scanning**:
    - Scans markdown files for YAML code blocks (marked with ` ```yaml ` or ` ```yml `)
    - Extracts YAML code blocks from action.yml descriptions (root and input descriptions)
 5. **Example Validation**: For each code block containing action usage (identified by `uses: owner/repo@version`):
    - Validates that all `with:` inputs are defined in the action schema
-   - Checks input types (boolean, number) when specified
-   - Validates input values against allowed options when specified
+   - Checks input types (boolean, number, string, choice) when specified
+   - Validates input values against allowed options (choice type)
+   - Validates string inputs against regex patterns (when defined in schema)
    - Validates output references (e.g., `steps.my-step.outputs.result`) exist in the action schema
-   - Skips validation for expressions containing `${{ ... }}`
+   - Skips validation for non-literal expressions containing `${{ ... }}`
 6. **Error Reporting**: Reports errors using GitHub Actions workflow commands with file, line, and column information
 
 ## Example
