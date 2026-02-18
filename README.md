@@ -22,7 +22,85 @@ A GitHub Action that validates examples in documentation against your action's s
 
 ## Usage
 
-### Basic Usage
+<!-- start usage -->
+
+```yaml
+- uses: jessehouwing/actions-example-checker@v1
+  with:
+    # GitHub token for API access to check fork relationships. When provided,
+    # the action will detect if the repository is a fork and allow examples to
+    # reference either the fork name or the upstream parent name.
+    #
+    # For example, if your repository jessehouwing/azdo-marketplace is forked
+    # from microsoft/azure-devops-extension-tasks, examples can use either:
+    # - uses: jessehouwing/azdo-marketplace@v1
+    # - uses: microsoft/azure-devops-extension-tasks@v1
+    #
+    # Both will be validated against the same action.yml schema from your repository.
+    #
+    # Default: ${{ github.token }}
+    token: ''
+
+    # Repository name in 'owner/repo' format. Used to match action references
+    # in documentation. If not provided, will be auto-detected from git or
+    # GITHUB_REPOSITORY environment variable.
+    #
+    # Examples:
+    # - 'jessehouwing/actions-example-checker'
+    # - 'actions/checkout'
+    #
+    # Default: Auto-detected from git remote or GITHUB_REPOSITORY
+    repository: ''
+
+    # Path to the repository root. Use this when your action.yml files are not
+    # in the default checkout location or when you need to validate a subdirectory.
+    #
+    # Examples:
+    # - '.' (current directory)
+    # - './my-action' (subdirectory)
+    # - '/path/to/repo' (absolute path)
+    #
+    # Default: .
+    repository-path: ''
+
+    # Glob pattern to find action files in your repository. The action will search
+    # for all files matching this pattern and validate examples against their schemas.
+    #
+    # The default pattern finds:
+    # - action.yml and action.yaml in the root directory
+    # - action.yml and action.yaml in any subdirectory
+    #
+    # Examples:
+    # - '{**/,}action.{yml,yaml}' (default - root and all subdirectories)
+    # - 'action.yml' (only root directory)
+    # - '**/action.yml' (only subdirectories)
+    # - 'actions/**/action.{yml,yaml}' (subdirectories under 'actions' folder)
+    #
+    # Default: {**/,}action.{yml,yaml}
+    action-pattern: ''
+
+    # Glob pattern to find documentation files that contain YAML code blocks
+    # to validate. The action will scan these files for usage examples.
+    #
+    # The default pattern finds all Markdown files in the repository, but you can
+    # customize it to target specific directories or file types.
+    #
+    # Examples:
+    # - '**/*.md' (default - all Markdown files)
+    # - 'README.md' (only root README)
+    # - 'docs/**/*.md' (only files in docs directory)
+    # - '**/*.{md,markdown}' (Markdown files with either extension)
+    #
+    # Note: The action also validates YAML examples embedded in action.yml
+    # description fields, regardless of this pattern.
+    #
+    # Default: **/*.md
+    docs-pattern: ''
+```
+
+<!-- end usage -->
+
+### Quick Start
 
 Add this action to your CI workflow to validate documentation examples:
 
@@ -42,21 +120,22 @@ jobs:
       - uses: jessehouwing/actions-example-checker@v1
 ```
 
-### With Custom Patterns
+### Advanced Examples
 
-Customize which files to scan:
+#### Custom Patterns
+
+Validate only specific documentation:
 
 ```yaml
 - uses: jessehouwing/actions-example-checker@v1
   with:
-    repository-path: .
-    action-pattern: '{**/,}action.{yml,yaml}'
-    docs-pattern: '**/*.md'
+    docs-pattern: 'docs/**/*.md'
+    action-pattern: 'action.yml'
 ```
 
-### With Fork Support
+#### Fork Support
 
-If your repository is a fork (e.g., `jessehouwing/azdo-marketplace` forked from `microsoft/azure-devops-extension-tasks`), the action will automatically detect this and allow examples to use either name:
+For forked repositories, enable automatic parent detection:
 
 ```yaml
 - uses: jessehouwing/actions-example-checker@v1
@@ -64,12 +143,16 @@ If your repository is a fork (e.g., `jessehouwing/azdo-marketplace` forked from 
     token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-This allows documentation to reference either:
+#### Validate Multiple Actions
 
-- `uses: jessehouwing/azdo-marketplace@v1` (fork name)
-- `uses: microsoft/azure-devops-extension-tasks@v1` (parent name)
+For monorepo with multiple actions:
 
-Both will be validated against the same `action.yml` schema from your repository.
+```yaml
+- uses: jessehouwing/actions-example-checker@v1
+  with:
+    action-pattern: 'actions/**/action.{yml,yaml}'
+    docs-pattern: 'actions/**/*.md'
+```
 
 ## Inputs
 
