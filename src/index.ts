@@ -109,11 +109,66 @@ export async function run(): Promise<void> {
     return
   }
 
+  // Validate examples in action.yml descriptions
+  for (const [actionRef, schema] of schemas.entries()) {
+    // Only validate once per unique schema (not for alternative names)
+    if (schema.actionReference !== actionRef) {
+      continue
+    }
+
+    if (schema.descriptions.length === 0) {
+      continue
+    }
+
+    core.debug(`Checking examples in ${schema.sourceFile} descriptions`)
+
+    for (const description of schema.descriptions) {
+      const blocks = extractYamlCodeBlocks(description)
+
+      for (const block of blocks) {
+        const steps = findReferencedSteps(block.text, schemas)
+
+        for (const step of steps) {
+          const stepSchema = schemas.get(step.actionReference)
+          if (!stepSchema) {
+            continue
+          }
+
+          const errors = validateStep(step, stepSchema, block.contentStartLine)
+
+          for (const error of errors) {
+            totalErrors++
+            core.error(error.message, {
+              file: schema.sourceFile,
+              startLine: error.line,
+              startColumn: error.column,
+            })
+          }
+        }
+
+        // Validate output references in the description block
+        const outputErrors = validateOutputReferences(
+          block.text,
+          steps,
+          schemas,
+          block.contentStartLine
+        )
+        for (const error of outputErrors) {
+          totalErrors++
+          core.error(error.message, {
+            file: schema.sourceFile,
+            startLine: error.line,
+            startColumn: error.column,
+          })
+        }
+      }
+    }
+  }
+
   // Find all markdown files
   const markdownFiles = await findMarkdownFiles(repositoryPath, docsPattern)
   core.info(`Found ${markdownFiles.length} documentation file(s)`)
 
-  let totalErrors = 0
   let filesChecked = 0
 
   // Validate each markdown file
@@ -198,4 +253,5 @@ export interface ActionSchema {
   >
   outputs: Set<string>
   sourceFile: string
+  descriptions: string[] // All descriptions from action and inputs (for example extraction)
 }

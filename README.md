@@ -15,6 +15,8 @@ A GitHub Action that validates examples in documentation against your action's s
 - 🚫 **Expression Handling**: Skips validation for values containing GitHub Actions expressions (`${{ ... }}`)
 - 📊 **Output Validation**: Ensures referenced outputs exist in the action schema
 - 🔀 **Fork Support**: Automatically detects forks and validates examples using either fork or parent repository names
+- 💬 **Comment Support**: Handles trailing `#` comments in YAML examples
+- 📄 **Multi-line Values**: Supports YAML literal (`|`) and folded (`>`) block scalars
 - 🎯 **Precise Error Reporting**: Reports errors with file, line, and column information using GitHub Actions workflow commands
 
 ## Usage
@@ -175,6 +177,72 @@ This action validates its own documentation! Here's a valid example:
     repository-path: .
     action-pattern: '{**/,}action.{yml,yaml}'
     docs-pattern: '**/*.md'
+```
+
+## Advanced Syntax Support
+
+The action supports various YAML syntax features commonly used in GitHub Actions:
+
+### Comments
+
+Trailing comments are supported and stripped before validation:
+
+```yaml
+- uses: owner/action@v1
+  id: my-step # step identifier
+  with:
+    environment: production # deployment target
+    debug: true # enable debugging
+```
+
+Comments inside quoted strings are preserved:
+
+```yaml
+- uses: owner/action@v1
+  with:
+    message: 'Build #123 completed' # hash in string is preserved
+```
+
+### Multi-line Values
+
+The action supports YAML literal block scalars (`|`) and folded block scalars (`>`):
+
+```yaml
+- uses: owner/action@v1
+  with:
+    script: |
+      echo "Line 1"
+      echo "Line 2"
+      echo "Line 3"
+    description: >
+      This is a long description
+      that will be folded into
+      a single line
+```
+
+Multi-line values are validated just like single-line values:
+
+- Type checking applies (boolean, number)
+- Option validation applies
+- Expressions are still skipped
+
+### Flexible Syntax
+
+```yaml
+# With dash
+- uses: owner/action@v1
+  with:
+    input: value
+
+# Without dash
+uses: owner/action@v1
+with:
+  input: value
+
+# Dash without space
+-uses: owner/action@v1
+  with:
+    input: value
 ```
 
 ## Type Detection

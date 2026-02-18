@@ -13,6 +13,7 @@ describe('Comment and Syntax Handling', () => {
     inputs: new Map(inputs.map((name) => [name, { required: false }])),
     outputs: new Set(),
     sourceFile: 'action.yml',
+    descriptions: [],
   })
 
   describe('Trailing Comments', () => {
@@ -209,6 +210,7 @@ with:
         ]),
         outputs: new Set(),
         sourceFile: 'action.yml',
+        descriptions: [],
       }
 
       const yaml = `
@@ -232,6 +234,7 @@ with:
         ]),
         outputs: new Set(),
         sourceFile: 'action.yml',
+        descriptions: [],
       }
 
       const yaml = `
@@ -254,6 +257,7 @@ with:
         inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
         outputs: new Set(),
         sourceFile: 'action.yml',
+        descriptions: [],
       }
 
       const yaml = `
@@ -279,6 +283,7 @@ with:
         ]),
         outputs: new Set(),
         sourceFile: 'action.yml',
+        descriptions: [],
       }
 
       const yaml = `
@@ -303,6 +308,7 @@ with:
         inputs: new Map([['script', { required: false }]]),
         outputs: new Set(),
         sourceFile: 'action.yml',
+        descriptions: [],
       }
 
       const yaml = `

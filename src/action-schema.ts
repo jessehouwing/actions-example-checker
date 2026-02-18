@@ -39,6 +39,14 @@ export async function loadActionSchema(
     alternativeNames.push(parentActionReference)
   }
 
+  // Collect all descriptions for example extraction
+  const descriptions: string[] = []
+
+  // Add root description
+  if (action.description && typeof action.description === 'string') {
+    descriptions.push(action.description)
+  }
+
   // Parse inputs
   const inputs = new Map<
     string,
@@ -61,6 +69,12 @@ export async function loadActionSchema(
         // Parse description for type hints
         const description =
           typeof def.description === 'string' ? def.description : ''
+
+        // Collect description for example extraction
+        if (description) {
+          descriptions.push(description)
+        }
+
         if (description.toLowerCase().includes('boolean')) {
           inputType = 'boolean'
         } else if (description.toLowerCase().includes('number')) {
@@ -101,5 +115,6 @@ export async function loadActionSchema(
     inputs,
     outputs,
     sourceFile: path.relative(repositoryPath, actionFilePath),
+    descriptions,
   }
 }

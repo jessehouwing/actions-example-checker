@@ -60,6 +60,7 @@ describe('findReferencedSteps', () => {
     inputs: new Map(),
     outputs: new Set(),
     sourceFile: 'action.yml',
+    descriptions: [],
   })
 
   it('should find referenced steps in valid YAML', () => {
@@ -150,6 +151,7 @@ describe('validateStep', () => {
       inputs: new Map([['valid-input', { required: true }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
+      descriptions: [],
     }
 
     const step = {
@@ -175,6 +177,7 @@ describe('validateStep', () => {
       inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
+      descriptions: [],
     }
 
     const step = {
@@ -199,6 +202,7 @@ describe('validateStep', () => {
       inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
+      descriptions: [],
     }
 
     const step = {
@@ -222,6 +226,7 @@ describe('validateStep', () => {
       inputs: new Map([['timeout', { required: false, type: 'number' }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
+      descriptions: [],
     }
 
     const step = {
@@ -246,6 +251,7 @@ describe('validateStep', () => {
       inputs: new Map([['timeout', { required: false, type: 'number' }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
+      descriptions: [],
     }
 
     const step = {
@@ -277,6 +283,7 @@ describe('validateStep', () => {
       ]),
       outputs: new Set(),
       sourceFile: 'action.yml',
+      descriptions: [],
     }
 
     const step = {
@@ -309,6 +316,7 @@ describe('validateStep', () => {
       ]),
       outputs: new Set(),
       sourceFile: 'action.yml',
+      descriptions: [],
     }
 
     const step = {
@@ -341,6 +349,7 @@ describe('validateStep', () => {
       ]),
       outputs: new Set(),
       sourceFile: 'action.yml',
+      descriptions: [],
     }
 
     const step = {
@@ -367,6 +376,7 @@ describe('validateStep', () => {
       ]),
       outputs: new Set(),
       sourceFile: 'action.yml',
+      descriptions: [],
     }
 
     const step = {
@@ -390,6 +400,7 @@ describe('validateStep', () => {
       inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
+      descriptions: [],
     }
 
     const step = {
@@ -415,6 +426,7 @@ describe('validateStep', () => {
       inputs: new Map(),
       outputs: new Set(),
       sourceFile: 'action.yml',
+      descriptions: [],
     }
 
     const step = {
@@ -437,6 +449,7 @@ describe('validateOutputReferences', () => {
     inputs: new Map(),
     outputs: new Set(outputs),
     sourceFile: 'action.yml',
+    descriptions: [],
   })
 
   it('should validate output references in YAML block', () => {

@@ -38859,6 +38859,12 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
             : parentRepo;
         alternativeNames.push(parentActionReference);
     }
+    // Collect all descriptions for example extraction
+    const descriptions = [];
+    // Add root description
+    if (action.description && typeof action.description === 'string') {
+        descriptions.push(action.description);
+    }
     // Parse inputs
     const inputs = new Map();
     if (action.inputs && typeof action.inputs === 'object') {
@@ -38874,6 +38880,10 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
                 }
                 // Parse description for type hints
                 const description = typeof def.description === 'string' ? def.description : '';
+                // Collect description for example extraction
+                if (description) {
+                    descriptions.push(description);
+                }
                 if (description.toLowerCase().includes('boolean')) {
                     inputType = 'boolean';
                 }
@@ -38909,6 +38919,7 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
         inputs,
         outputs,
         sourceFile: path$1.relative(repositoryPath, actionFilePath),
+        descriptions,
     };
 }
 
@@ -44124,10 +44135,51 @@ async function run() {
         warning('No valid action schemas loaded');
         return;
     }
+    // Validate examples in action.yml descriptions
+    for (const [actionRef, schema] of schemas.entries()) {
+        // Only validate once per unique schema (not for alternative names)
+        if (schema.actionReference !== actionRef) {
+            continue;
+        }
+        if (schema.descriptions.length === 0) {
+            continue;
+        }
+        debug(`Checking examples in ${schema.sourceFile} descriptions`);
+        for (const description of schema.descriptions) {
+            const blocks = extractYamlCodeBlocks(description);
+            for (const block of blocks) {
+                const steps = findReferencedSteps(block.text, schemas);
+                for (const step of steps) {
+                    const stepSchema = schemas.get(step.actionReference);
+                    if (!stepSchema) {
+                        continue;
+                    }
+                    const errors = validateStep(step, stepSchema, block.contentStartLine);
+                    for (const error$1 of errors) {
+                        totalErrors++;
+                        error(error$1.message, {
+                            file: schema.sourceFile,
+                            startLine: error$1.line,
+                            startColumn: error$1.column,
+                        });
+                    }
+                }
+                // Validate output references in the description block
+                const outputErrors = validateOutputReferences(block.text, steps, schemas, block.contentStartLine);
+                for (const error$1 of outputErrors) {
+                    totalErrors++;
+                    error(error$1.message, {
+                        file: schema.sourceFile,
+                        startLine: error$1.line,
+                        startColumn: error$1.column,
+                    });
+                }
+            }
+        }
+    }
     // Find all markdown files
     const markdownFiles = await findMarkdownFiles(repositoryPath, docsPattern);
     info(`Found ${markdownFiles.length} documentation file(s)`);
-    let totalErrors = 0;
     let filesChecked = 0;
     // Validate each markdown file
     for (const markdownFile of markdownFiles) {
