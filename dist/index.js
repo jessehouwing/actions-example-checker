@@ -44135,6 +44135,8 @@ async function run() {
         warning('No valid action schemas loaded');
         return;
     }
+    let totalErrors = 0;
+    let filesChecked = 0;
     // Validate examples in action.yml descriptions
     for (const [actionRef, schema] of schemas.entries()) {
         // Only validate once per unique schema (not for alternative names)
@@ -44180,7 +44182,6 @@ async function run() {
     // Find all markdown files
     const markdownFiles = await findMarkdownFiles(repositoryPath, docsPattern);
     info(`Found ${markdownFiles.length} documentation file(s)`);
-    let filesChecked = 0;
     // Validate each markdown file
     for (const markdownFile of markdownFiles) {
         const relativeFilePath = path$1.relative(repositoryPath, markdownFile);
