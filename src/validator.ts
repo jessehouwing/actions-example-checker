@@ -220,9 +220,8 @@ function extractActionReference(
     // Match patterns like:
     // - owner/repo@version (root action)
     // - owner/repo/path@version (action in subdirectory)
-    const pattern = actionRef
-      ? new RegExp(`^[^/]+/[^/@]+/${actionRef}@.+$`, 'i')
-      : new RegExp(`^[^/]+/[^/@]+@.+$`, 'i')
+    const escapedRef = actionRef.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const pattern = new RegExp(`^${escapedRef}@.+$`, 'i')
 
     if (pattern.test(trimmed)) {
       return { actionReference: actionRef }

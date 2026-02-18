@@ -46,7 +46,7 @@ Customize which files to scan:
 - uses: jessehouwing/actions-example-checker@v1
   with:
     repository-path: .
-    action-pattern: '**/action.{yml,yaml}'
+    action-pattern: '{**/,}action.{yml,yaml}'
     docs-pattern: '**/*.md'
 ```
 
@@ -128,6 +128,19 @@ Expressions are allowed and skipped:
   with:
     environment: ${{ inputs.env }} # OK: Expression
     debug: ${{ github.event.inputs.debug }} # OK: Expression
+```
+
+## Self-Testing
+
+This action validates its own documentation! Here's a valid example:
+
+```yaml
+- uses: jessehouwing/actions-example-checker@v1
+  with:
+    repository: jessehouwing/actions-example-checker
+    repository-path: .
+    action-pattern: '{**/,}action.{yml,yaml}'
+    docs-pattern: '**/*.md'
 ```
 
 ## Type Detection

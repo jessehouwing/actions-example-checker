@@ -8,7 +8,8 @@ import { ActionSchema } from './index.js'
  */
 export async function loadActionSchema(
   actionFilePath: string,
-  repositoryPath: string
+  repositoryPath: string,
+  repository: string
 ): Promise<ActionSchema> {
   const content = await fs.readFile(actionFilePath, 'utf8')
   const action = yaml.parse(content)
@@ -21,7 +22,12 @@ export async function loadActionSchema(
   const relativeDir = path.dirname(
     path.relative(repositoryPath, actionFilePath)
   )
-  const actionReference = relativeDir === '.' ? '' : relativeDir
+  const actionPath = relativeDir === '.' ? '' : relativeDir
+
+  // Build full action reference: owner/repo or owner/repo/path
+  const actionReference = actionPath
+    ? `${repository}/${actionPath}`
+    : repository
 
   // Parse inputs
   const inputs = new Map<

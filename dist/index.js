@@ -16,7 +16,7 @@ import require$$0$3 from 'node:net';
 import require$$2 from 'node:http';
 import require$$0$2 from 'node:stream';
 import require$$0 from 'node:buffer';
-import require$$0$4 from 'node:util';
+import require$$0$4, { promisify } from 'node:util';
 import require$$7 from 'node:querystring';
 import require$$8 from 'node:events';
 import require$$0$5 from 'node:diagnostics_channel';
@@ -33,6 +33,7 @@ import require$$5$3 from 'string_decoder';
 import 'child_process';
 import 'timers';
 import { promises as promises$1 } from 'node:fs';
+import { exec } from 'node:child_process';
 import path$1 from 'node:path';
 import 'stream';
 import require$$0$6 from 'process';
@@ -30134,12 +30135,29 @@ function create(patterns, options) {
  * Find all action.yml/action.yaml files in the repository
  */
 async function findActionFiles(repositoryPath, pattern) {
-    const globber = await create(path$1.join(repositoryPath, pattern), {
-        followSymbolicLinks: false,
-    });
-    const files = await globber.glob();
+    const patterns = [
+        path$1.join(repositoryPath, 'action.yml'),
+        path$1.join(repositoryPath, 'action.yaml'),
+        path$1.join(repositoryPath, '**/action.yml'),
+        path$1.join(repositoryPath, '**/action.yaml'),
+    ];
+    const allFiles = [];
+    for (const p of patterns) {
+        try {
+            const globber = await create(p, {
+                followSymbolicLinks: false,
+            });
+            const files = await globber.glob();
+            allFiles.push(...files);
+        }
+        catch {
+            // Ignore errors for patterns that don't match
+        }
+    }
+    // Deduplicate files
+    const uniqueFiles = [...new Set(allFiles)];
     // Filter out node_modules and other common directories
-    return files.filter((file) => {
+    return uniqueFiles.filter((file) => {
         const relativePath = path$1.relative(repositoryPath, file);
         return (!relativePath.includes('node_modules') &&
             !relativePath.includes('.git') &&
@@ -38820,7 +38838,7 @@ var distExports = requireDist();
 /**
  * Load and parse an action.yml file
  */
-async function loadActionSchema(actionFilePath, repositoryPath) {
+async function loadActionSchema(actionFilePath, repositoryPath, repository) {
     const content = await promises$1.readFile(actionFilePath, 'utf8');
     const action = distExports.parse(content);
     if (!action || typeof action !== 'object') {
@@ -38828,7 +38846,11 @@ async function loadActionSchema(actionFilePath, repositoryPath) {
     }
     // Determine the action reference based on file location
     const relativeDir = path$1.dirname(path$1.relative(repositoryPath, actionFilePath));
-    const actionReference = relativeDir === '.' ? '' : relativeDir;
+    const actionPath = relativeDir === '.' ? '' : relativeDir;
+    // Build full action reference: owner/repo or owner/repo/path
+    const actionReference = actionPath
+        ? `${repository}/${actionPath}`
+        : repository;
     // Parse inputs
     const inputs = new Map();
     if (action.inputs && typeof action.inputs === 'object') {
@@ -39055,9 +39077,8 @@ function extractActionReference(usesValue, schemas) {
         // Match patterns like:
         // - owner/repo@version (root action)
         // - owner/repo/path@version (action in subdirectory)
-        const pattern = actionRef
-            ? new RegExp(`^[^/]+/[^/@]+/${actionRef}@.+$`, 'i')
-            : new RegExp(`^[^/]+/[^/@]+@.+$`, 'i');
+        const escapedRef = actionRef.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = new RegExp(`^${escapedRef}@.+$`, 'i');
         if (pattern.test(trimmed)) {
             return { actionReference: actionRef };
         }
@@ -39171,18 +39192,45 @@ function lineAtOffset(text, offset) {
     return line;
 }
 
+const execAsync = promisify(exec);
+/**
+ * Detect repository name from git remote
+ */
+async function detectRepositoryName() {
+    try {
+        const { stdout } = await execAsync('git remote get-url origin');
+        const remoteUrl = stdout.trim();
+        // Parse GitHub URL patterns:
+        // - https://github.com/owner/repo.git
+        // - git@github.com:owner/repo.git
+        const match = remoteUrl.match(/github\.com[/:]([\w-]+)\/([\w-]+?)(?:\.git)?$/);
+        if (match) {
+            return `${match[1]}/${match[2]}`;
+        }
+    }
+    catch {
+        // Ignore errors
+    }
+    return '';
+}
 /**
  * Main runner function
  */
 async function run() {
+    let repository = getInput('repository') || process.env.GITHUB_REPOSITORY || '';
+    // If no repository specified, try to detect from git
+    if (!repository) {
+        repository = await detectRepositoryName();
+    }
     const repositoryPath = getInput('repository-path') || '.';
-    const actionPattern = getInput('action-pattern') || '**/action.{yml,yaml}';
+    const actionPattern = getInput('action-pattern') || '{**/,}action.{yml,yaml}';
     const docsPattern = getInput('docs-pattern') || '**/*.md';
+    info(`Repository: ${repository}`);
     info(`Repository path: ${repositoryPath}`);
     info(`Action pattern: ${actionPattern}`);
     info(`Docs pattern: ${docsPattern}`);
     // Find all action files
-    const actionFiles = await findActionFiles(repositoryPath, actionPattern);
+    const actionFiles = await findActionFiles(repositoryPath);
     info(`Found ${actionFiles.length} action file(s)`);
     if (actionFiles.length === 0) {
         warning('No action files found');
@@ -39192,7 +39240,7 @@ async function run() {
     const schemas = new Map();
     for (const actionFile of actionFiles) {
         try {
-            const schema = await loadActionSchema(actionFile, repositoryPath);
+            const schema = await loadActionSchema(actionFile, repositoryPath, repository);
             schemas.set(schema.actionReference, schema);
             info(`Loaded schema for ${schema.actionReference} from ${actionFile}`);
         }

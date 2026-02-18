@@ -1,5 +1,7 @@
 import * as core from '@actions/core'
 import { promises as fs } from 'node:fs'
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
 import path from 'node:path'
 import { findActionFiles } from './action-finder.js'
 import { loadActionSchema } from './action-schema.js'
@@ -10,15 +12,49 @@ import {
   validateStep,
 } from './validator.js'
 
+const execAsync = promisify(exec)
+
+/**
+ * Detect repository name from git remote
+ */
+async function detectRepositoryName(): Promise<string> {
+  try {
+    const { stdout } = await execAsync('git remote get-url origin')
+    const remoteUrl = stdout.trim()
+
+    // Parse GitHub URL patterns:
+    // - https://github.com/owner/repo.git
+    // - git@github.com:owner/repo.git
+    const match = remoteUrl.match(
+      /github\.com[/:]([\w-]+)\/([\w-]+?)(?:\.git)?$/
+    )
+    if (match) {
+      return `${match[1]}/${match[2]}`
+    }
+  } catch {
+    // Ignore errors
+  }
+  return ''
+}
+
 /**
  * Main runner function
  */
 export async function run(): Promise<void> {
+  let repository =
+    core.getInput('repository') || process.env.GITHUB_REPOSITORY || ''
+
+  // If no repository specified, try to detect from git
+  if (!repository) {
+    repository = await detectRepositoryName()
+  }
+
   const repositoryPath = core.getInput('repository-path') || '.'
   const actionPattern =
-    core.getInput('action-pattern') || '**/action.{yml,yaml}'
+    core.getInput('action-pattern') || '{**/,}action.{yml,yaml}'
   const docsPattern = core.getInput('docs-pattern') || '**/*.md'
 
+  core.info(`Repository: ${repository}`)
   core.info(`Repository path: ${repositoryPath}`)
   core.info(`Action pattern: ${actionPattern}`)
   core.info(`Docs pattern: ${docsPattern}`)
@@ -36,7 +72,11 @@ export async function run(): Promise<void> {
   const schemas = new Map<string, ActionSchema>()
   for (const actionFile of actionFiles) {
     try {
-      const schema = await loadActionSchema(actionFile, repositoryPath)
+      const schema = await loadActionSchema(
+        actionFile,
+        repositoryPath,
+        repository
+      )
       schemas.set(schema.actionReference, schema)
       core.info(
         `Loaded schema for ${schema.actionReference} from ${actionFile}`

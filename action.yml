@@ -6,6 +6,12 @@ branding:
   color: blue
 
 inputs:
+  repository:
+    description: >
+      Repository name in 'owner/repo' format. Used to match action references
+      in documentation. If not provided, will be auto-detected from git or
+      GITHUB_REPOSITORY environment variable.
+    required: false
   repository-path:
     description: Path to the repository root (defaults to current directory)
     required: false
@@ -13,7 +19,7 @@ inputs:
   action-pattern:
     description: Glob pattern to find action files (e.g., **/action.{yml,yaml})
     required: false
-    default: '**/action.{yml,yaml}'
+    default: '{**/,}action.{yml,yaml}'
   docs-pattern:
     description: Glob pattern to find documentation files (e.g., **/*.md)
     required: false
