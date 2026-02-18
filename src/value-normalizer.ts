@@ -7,7 +7,7 @@
  * - Rejoin folded scalar (>) lines into a single value
  * - Remove enclosing quotes ("..." or '...')
  * - Remove trailing comments (# ...)
- * - Preserve literal expressions
+ * - Preserve literal expressions as-is
  */
 export function normalizeValue(value: unknown): string | null {
   if (value === null || value === undefined) {
@@ -20,6 +20,13 @@ export function normalizeValue(value: unknown): string | null {
   // If it does, return null to skip validation
   if (containsNonLiteralExpression(str)) {
     return null
+  }
+
+  // Check if the entire value is a literal expression
+  // If so, preserve it as-is (but still remove outer quotes if present)
+  if (isLiteralExpression(str)) {
+    // Only remove enclosing quotes from the entire expression
+    return removeEnclosingQuotes(str.trim())
   }
 
   // Remove leading and trailing whitespace
@@ -40,6 +47,28 @@ export function normalizeValue(value: unknown): string | null {
   str = str.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim()
 
   return str
+}
+
+/**
+ * Check if a value is a literal expression (entire value is ${{ ... }} with literal content)
+ */
+function isLiteralExpression(value: string): boolean {
+  const trimmed = value.trim()
+  // Check if entire value is an expression
+  const fullExpressionMatch = trimmed.match(/^\$\{\{(.*?)\}\}$/)
+  if (!fullExpressionMatch) {
+    return false
+  }
+  
+  const expression = fullExpressionMatch[1].trim()
+  
+  // Check if it's a literal
+  const isSingleQuoted = /^'(?:[^']|'')*'$/.test(expression)
+  const isDoubleQuoted = /^"(?:[^"\\]|\\.)*"$/.test(expression)
+  const isNumber = /^-?(?:0x[0-9a-fA-F]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)$/i.test(expression)
+  const isBooleanOrNull = /^(true|false|null)$/i.test(expression)
+  
+  return isSingleQuoted || isDoubleQuoted || isNumber || isBooleanOrNull
 }
 
 /**

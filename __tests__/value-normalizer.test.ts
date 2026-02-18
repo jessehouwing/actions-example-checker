@@ -89,6 +89,41 @@ describe('normalizeValue', () => {
     expect(normalizeValue('${{ "double quoted" }}')).toBe('${{ "double quoted" }}')
   })
 
+  it('should handle literal expressions with optional whitespace', () => {
+    // Lots of whitespace around the literal
+    expect(normalizeValue('${{                         1                              }}')).toBe('${{                         1                              }}')
+    
+    // No spaces
+    expect(normalizeValue('${{1}}')).toBe('${{1}}')
+    
+    // Mixed whitespace with different literals
+    expect(normalizeValue('${{  null  }}')).toBe('${{  null  }}')
+    expect(normalizeValue('${{true}}')).toBe('${{true}}')
+    expect(normalizeValue('${{    false    }}')).toBe('${{    false    }}')
+    expect(normalizeValue("${{  'string'  }}")).toBe("${{  'string'  }}")
+    expect(normalizeValue('${{   -9.2   }}')).toBe('${{   -9.2   }}')
+    
+    // Tabs and multiple spaces
+    expect(normalizeValue('${{ \t\t 42 \t\t }}')).toBe('${{ \t\t 42 \t\t }}')
+  })
+
+  it('should handle quoted literal expressions', () => {
+    // Double-quoted expression
+    expect(normalizeValue('"${{1}}"')).toBe('${{1}}')
+    
+    // Single-quoted expression
+    expect(normalizeValue("'${{1}}'")).toBe('${{1}}')
+    
+    // Double-quoted with spaces
+    expect(normalizeValue('"${{ 42 }}"')).toBe('${{ 42 }}')
+    
+    // Quoted null
+    expect(normalizeValue('"${{ null }}"')).toBe('${{ null }}')
+    
+    // Quoted boolean
+    expect(normalizeValue("'${{ true }}'")).toBe('${{ true }}')
+  })
+
   it('should handle null and undefined', () => {
     expect(normalizeValue(null)).toBeNull()
     expect(normalizeValue(undefined)).toBeNull()
