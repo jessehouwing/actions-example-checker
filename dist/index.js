@@ -44524,6 +44524,15 @@ function validateStep(step, schema, blockStartLine) {
     return errors;
 }
 /**
+ * Truncate a value for display in error messages
+ */
+function truncateValue(value, maxLength = 100) {
+    if (value.length <= maxLength) {
+        return value;
+    }
+    return value.substring(0, maxLength) + '...';
+}
+/**
  * Validate a single-value input
  */
 function validateSingleValueInput(inputName, inputValue, inputSchema, uses, line) {
@@ -44535,6 +44544,8 @@ function validateSingleValueInput(inputName, inputValue, inputSchema, uses, line
         return errors;
     }
     // Skip validation for optional inputs with empty string values
+    // This treats empty strings as "not provided" for optional inputs,
+    // allowing users to explicitly set empty values without validation errors
     if (!inputSchema.required && normalizedValue === '') {
         return errors;
     }
@@ -44548,7 +44559,7 @@ function validateSingleValueInput(inputName, inputValue, inputSchema, uses, line
             const boolValue = normalizeBoolean(inputValue);
             if (boolValue === null) {
                 errors.push({
-                    message: `Input '${inputName}' for action '${uses}' expects a boolean value, but got '${normalizedValue}'`,
+                    message: `Input '${inputName}' for action '${uses}' expects a boolean value, but got '${truncateValue(normalizedValue)}'`,
                     line,
                     column: 1,
                 });
@@ -44558,7 +44569,7 @@ function validateSingleValueInput(inputName, inputValue, inputSchema, uses, line
             const numValue = normalizeNumber(inputValue);
             if (numValue === null) {
                 errors.push({
-                    message: `Input '${inputName}' for action '${uses}' expects a number value, but got '${normalizedValue}'`,
+                    message: `Input '${inputName}' for action '${uses}' expects a number value, but got '${truncateValue(normalizedValue)}'`,
                     line,
                     column: 1,
                 });
@@ -44569,7 +44580,7 @@ function validateSingleValueInput(inputName, inputValue, inputSchema, uses, line
             if (inputSchema.match &&
                 !validateMatch(normalizedValue, inputSchema.match)) {
                 errors.push({
-                    message: `Input '${inputName}' for action '${uses}' has value '${normalizedValue}' which does not match required pattern: ${inputSchema.match}`,
+                    message: `Input '${inputName}' for action '${uses}' has value '${truncateValue(normalizedValue)}' which does not match required pattern: ${inputSchema.match}`,
                     line,
                     column: 1,
                 });
@@ -44578,7 +44589,7 @@ function validateSingleValueInput(inputName, inputValue, inputSchema, uses, line
             if (inputSchema.options && inputSchema.options.length > 0) {
                 if (!inputSchema.options.includes(normalizedValue)) {
                     errors.push({
-                        message: `Input '${inputName}' for action '${uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
+                        message: `Input '${inputName}' for action '${uses}' expects one of [${inputSchema.options.join(', ')}], but got '${truncateValue(normalizedValue)}'`,
                         line,
                         column: 1,
                     });
@@ -44591,7 +44602,7 @@ function validateSingleValueInput(inputName, inputValue, inputSchema, uses, line
         if (inputSchema.options && inputSchema.options.length > 0) {
             if (!inputSchema.options.includes(normalizedValue)) {
                 errors.push({
-                    message: `Input '${inputName}' for action '${uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
+                    message: `Input '${inputName}' for action '${uses}' expects one of [${inputSchema.options.join(', ')}], but got '${truncateValue(normalizedValue)}'`,
                     line,
                     column: 1,
                 });
@@ -44612,6 +44623,8 @@ function validateMultiValueInput(inputName, inputValue, inputSchema, uses, line)
         return errors;
     }
     // Skip validation for optional inputs with empty or no items
+    // This treats empty strings as "not provided" for optional multi-value inputs,
+    // allowing users to explicitly set empty values without validation errors
     if (!inputSchema.required &&
         (items.length === 0 || items.every((item) => item === ''))) {
         return errors;
@@ -44656,7 +44669,7 @@ function validateMultiValueInput(inputName, inputValue, inputSchema, uses, line)
                 if (itemSchema.match &&
                     !validateMatch(normalizedItem, itemSchema.match)) {
                     errors.push({
-                        message: `Input '${inputName}' for action '${uses}': item ${i + 1} ('${normalizedItem}') does not match required pattern: ${itemSchema.match}`,
+                        message: `Input '${inputName}' for action '${uses}': item ${i + 1} ('${truncateValue(normalizedItem)}') does not match required pattern: ${itemSchema.match}`,
                         line,
                         column: 1,
                     });
@@ -44665,7 +44678,7 @@ function validateMultiValueInput(inputName, inputValue, inputSchema, uses, line)
                 if (itemSchema.options && itemSchema.options.length > 0) {
                     if (!itemSchema.options.includes(normalizedItem)) {
                         errors.push({
-                            message: `Input '${inputName}' for action '${uses}': item ${i + 1} ('${normalizedItem}') expects one of [${itemSchema.options.join(', ')}]`,
+                            message: `Input '${inputName}' for action '${uses}': item ${i + 1} ('${truncateValue(normalizedItem)}') expects one of [${itemSchema.options.join(', ')}]`,
                             line,
                             column: 1,
                         });
