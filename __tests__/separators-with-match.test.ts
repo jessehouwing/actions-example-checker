@@ -42,7 +42,11 @@ inputs:
 `
     )
 
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/test-action')
+    const schema = await loadActionSchema(
+      actionPath,
+      testDir,
+      'owner/test-action'
+    )
 
     // Check that items was auto-created
     const ignoreVersions = schema.inputs.get('ignore-versions')
@@ -105,7 +109,11 @@ inputs:
 `
     )
 
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/test-action')
+    const schema = await loadActionSchema(
+      actionPath,
+      testDir,
+      'owner/test-action'
+    )
 
     // Test with an invalid version in the list
     const yaml = `
@@ -155,7 +163,11 @@ inputs:
 `
     )
 
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/test-action')
+    const schema = await loadActionSchema(
+      actionPath,
+      testDir,
+      'owner/test-action'
+    )
 
     // Check that items was auto-created from the version type
     const ignoreVersions = schema.inputs.get('ignore-versions')
@@ -209,7 +221,11 @@ inputs:
 `
     )
 
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/test-action')
+    const schema = await loadActionSchema(
+      actionPath,
+      testDir,
+      'owner/test-action'
+    )
 
     // Check that items was auto-created with options
     const environments = schema.inputs.get('environments')
@@ -263,7 +279,11 @@ inputs:
 `
     )
 
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/test-action')
+    const schema = await loadActionSchema(
+      actionPath,
+      testDir,
+      'owner/test-action'
+    )
 
     // Check that explicit items takes precedence
     const tags = schema.inputs.get('tags')
