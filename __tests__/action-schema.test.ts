@@ -42,146 +42,39 @@ outputs:
     expect(schema.outputs.has('output1')).toBe(true)
   })
 
-  it('should detect boolean type from description', async () => {
-    const actionYml = `
-name: Test Action
-inputs:
-  debug:
-    description: Enable debug mode (boolean)
-    required: false
-`
-    const actionPath = path.join(testDir, 'action.yml')
-    await fs.writeFile(actionPath, actionYml)
-
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
-
-    expect(schema.inputs.get('debug')?.type).toBe('boolean')
+  // Type inference removed - action.yaml schema doesn't support datatyping
+  it.skip('should detect boolean type from description', async () => {
+    // Test skipped - type inference removed
   })
 
-  it('should detect number type from description', async () => {
-    const actionYml = `
-name: Test Action
-inputs:
-  timeout:
-    description: Timeout in seconds (number)
-    required: false
-`
-    const actionPath = path.join(testDir, 'action.yml')
-    await fs.writeFile(actionPath, actionYml)
-
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
-
-    expect(schema.inputs.get('timeout')?.type).toBe('number')
+  // Type inference removed - action.yaml schema doesn't support datatyping
+  it.skip('should detect number type from description', async () => {
+    // Test skipped - type inference removed
   })
 
-  it('should extract options from description', async () => {
-    const actionYml = `
-name: Test Action
-inputs:
-  environment:
-    description: 'Deployment environment. Options: development, staging, production'
-    required: true
-`
-    const actionPath = path.join(testDir, 'action.yml')
-    await fs.writeFile(actionPath, actionYml)
-
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
-
-    const options = schema.inputs.get('environment')?.options
-    expect(options).toBeDefined()
-    expect(options).toContain('development')
-    expect(options).toContain('staging')
-    expect(options).toContain('production')
+  // Options extraction removed - action.yaml schema doesn't support datatyping
+  it.skip('should extract options from description', async () => {
+    // Test skipped - options extraction removed
   })
 
-  it('should extract options with different keywords', async () => {
-    const actionYml = `
-name: Test Action
-inputs:
-  level:
-    description: 'Log level. Valid values: debug, info, warn, error'
-    required: false
-`
-    const actionPath = path.join(testDir, 'action.yml')
-    await fs.writeFile(actionPath, actionYml)
-
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
-
-    const options = schema.inputs.get('level')?.options
-    expect(options).toBeDefined()
-    expect(options).toContain('debug')
-    expect(options).toContain('error')
+  // Options extraction removed - action.yaml schema doesn't support datatyping
+  it.skip('should extract options with different keywords', async () => {
+    // Test skipped - options extraction removed
   })
 
-  it('should extract options and stop at default keyword', async () => {
-    const actionYml = `
-name: Test Action
-inputs:
-  debug:
-    description: 'Enable debug mode. Options: true, false, default: false'
-    required: false
-  environment:
-    description: 'Target environment. Options: dev, prod. Default is dev'
-    required: false
-`
-    const actionPath = path.join(testDir, 'action.yml')
-    await fs.writeFile(actionPath, actionYml)
-
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
-
-    const debugOptions = schema.inputs.get('debug')?.options
-    expect(debugOptions).toBeDefined()
-    expect(debugOptions).toEqual(['true', 'false'])
-    expect(debugOptions).not.toContain('default:')
-
-    const envOptions = schema.inputs.get('environment')?.options
-    expect(envOptions).toBeDefined()
-    expect(envOptions).toEqual(['dev', 'prod'])
-    expect(envOptions).not.toContain('Default')
+  // Options extraction removed - action.yaml schema doesn't support datatyping
+  it.skip('should extract options and stop at default keyword', async () => {
+    // Test skipped - options extraction removed
   })
 
-  it('should extract boolean options correctly', async () => {
-    const actionYml = `
-name: Test Action
-inputs:
-  enabled:
-    description: 'Feature flag. Options: true, false'
-    type: boolean
-`
-    const actionPath = path.join(testDir, 'action.yml')
-    await fs.writeFile(actionPath, actionYml)
-
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
-
-    const options = schema.inputs.get('enabled')?.options
-    expect(options).toBeDefined()
-    expect(options).toEqual(['true', 'false'])
-    expect(schema.inputs.get('enabled')?.type).toBe('boolean')
+  // Options and type extraction removed - action.yaml schema doesn't support datatyping
+  it.skip('should extract boolean options correctly', async () => {
+    // Test skipped - options and type extraction removed
   })
 
-  it('should extract options with square brackets', async () => {
-    const actionYml = `
-name: Test Action
-inputs:
-  check-level:
-    description: 'Check level (options: [error, warning, none, true, false], default: error).'
-    required: false
-  auto-fix:
-    description: 'Auto-fix enabled (options: [true, false], default: false).'
-    required: false
-`
-    const actionPath = path.join(testDir, 'action.yml')
-    await fs.writeFile(actionPath, actionYml)
-
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
-
-    const checkLevelOptions = schema.inputs.get('check-level')?.options
-    expect(checkLevelOptions).toBeDefined()
-    expect(checkLevelOptions).toEqual(['error', 'warning', 'none', 'true', 'false'])
-
-    const autoFixOptions = schema.inputs.get('auto-fix')?.options
-    expect(autoFixOptions).toBeDefined()
-    expect(autoFixOptions).toEqual(['true', 'false'])
+  // Options extraction removed - action.yaml schema doesn't support datatyping
+  it.skip('should extract options with square brackets', async () => {
+    // Test skipped - options extraction removed
   })
 
   it('should handle subdirectory actions', async () => {
@@ -219,24 +112,9 @@ runs:
     expect(schema.outputs.size).toBe(0)
   })
 
-  it('should handle explicit type field', async () => {
-    const actionYml = `
-name: Test Action
-inputs:
-  debug:
-    description: Debug mode
-    type: boolean
-  count:
-    description: Count value
-    type: number
-`
-    const actionPath = path.join(testDir, 'action.yml')
-    await fs.writeFile(actionPath, actionYml)
-
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
-
-    expect(schema.inputs.get('debug')?.type).toBe('boolean')
-    expect(schema.inputs.get('count')?.type).toBe('number')
+  // Type extraction removed - action.yaml schema doesn't support datatyping
+  it.skip('should handle explicit type field', async () => {
+    // Test skipped - type extraction removed
   })
 
   it('should throw error for invalid YAML', async () => {

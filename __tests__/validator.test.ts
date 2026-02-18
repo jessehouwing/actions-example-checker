@@ -170,320 +170,59 @@ describe('validateStep', () => {
     expect(errors[0].message).toContain('unknown-input')
   })
 
-  it('should validate boolean types', () => {
-    const schema: ActionSchema = {
-      actionReference: 'owner/repo',
-      alternativeNames: [],
-      inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
-      outputs: new Set(),
-      sourceFile: 'action.yml',
-      descriptions: [],
-    }
-
-    const step = {
-      actionReference: 'owner/repo',
-      uses: 'owner/repo@v1',
-      with: {
-        debug: 'yes',
-      },
-      lineInBlock: 1,
-    }
-
-    const errors = validateStep(step, schema, 1)
-
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toContain('boolean')
+  // Type validation removed - action.yaml schema doesn't support datatyping
+  it.skip('should validate boolean types', () => {
+    // Test skipped - type validation removed
   })
 
-  it('should accept valid boolean values', () => {
-    const schema: ActionSchema = {
-      actionReference: 'owner/repo',
-      alternativeNames: [],
-      inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
-      outputs: new Set(),
-      sourceFile: 'action.yml',
-      descriptions: [],
-    }
-
-    const step = {
-      actionReference: 'owner/repo',
-      uses: 'owner/repo@v1',
-      with: {
-        debug: 'true',
-      },
-      lineInBlock: 1,
-    }
-
-    const errors = validateStep(step, schema, 1)
-
-    expect(errors).toHaveLength(0)
+  // Type validation removed - action.yaml schema doesn't support datatyping  
+  it.skip('should accept valid boolean values', () => {
+    // Test skipped - type validation removed
   })
 
-  it('should accept quoted boolean values in YAML', () => {
-    const schema: ActionSchema = {
-      actionReference: 'owner/repo',
-      alternativeNames: [],
-      inputs: new Map([
-        ['debug', { required: false, type: 'boolean' }],
-        ['verbose', { required: false, type: 'boolean' }],
-      ]),
-      outputs: new Set(),
-      sourceFile: 'action.yml',
-      descriptions: [],
-    }
-
-    // Test both single and double quoted values
-    const yaml1 = `
-- uses: owner/repo@v1
-  with:
-    debug: 'true'
-    verbose: 'false'
-`
-    const yaml2 = `
-- uses: owner/repo@v1
-  with:
-    debug: "true"
-    verbose: "false"
-`
-
-    const schemas = new Map([['owner/repo', schema]])
-
-    const steps1 = findReferencedSteps(yaml1, schemas)
-    const errors1 = validateStep(steps1[0], schema, 1)
-    expect(errors1).toHaveLength(0)
-
-    const steps2 = findReferencedSteps(yaml2, schemas)
-    const errors2 = validateStep(steps2[0], schema, 1)
-    expect(errors2).toHaveLength(0)
+  // Type validation removed - action.yaml schema doesn't support datatyping
+  it.skip('should accept quoted boolean values in YAML', () => {
+    // Test skipped - type validation removed
   })
 
-  it('should accept unquoted boolean values in YAML', () => {
-    const schema: ActionSchema = {
-      actionReference: 'owner/repo',
-      alternativeNames: [],
-      inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
-      outputs: new Set(),
-      sourceFile: 'action.yml',
-      descriptions: [],
-    }
-
-    const yaml = `
-- uses: owner/repo@v1
-  with:
-    debug: true
-`
-    const schemas = new Map([['owner/repo', schema]])
-    const steps = findReferencedSteps(yaml, schemas)
-    const errors = validateStep(steps[0], schema, 1)
-
-    expect(errors).toHaveLength(0)
+  // Type validation removed - action.yaml schema doesn't support datatyping
+  it.skip('should accept unquoted boolean values in YAML', () => {
+    // Test skipped - type validation removed
   })
 
-  it('should validate number types', () => {
-    const schema: ActionSchema = {
-      actionReference: 'owner/repo',
-      alternativeNames: [],
-      inputs: new Map([['timeout', { required: false, type: 'number' }]]),
-      outputs: new Set(),
-      sourceFile: 'action.yml',
-      descriptions: [],
-    }
-
-    const step = {
-      actionReference: 'owner/repo',
-      uses: 'owner/repo@v1',
-      with: {
-        timeout: 'not-a-number',
-      },
-      lineInBlock: 1,
-    }
-
-    const errors = validateStep(step, schema, 1)
-
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toContain('number')
+  // Type validation removed - action.yaml schema doesn't support datatyping
+  it.skip('should validate number types', () => {
+    // Test skipped - type validation removed
   })
 
-  it('should accept valid number values', () => {
-    const schema: ActionSchema = {
-      actionReference: 'owner/repo',
-      alternativeNames: [],
-      inputs: new Map([['timeout', { required: false, type: 'number' }]]),
-      outputs: new Set(),
-      sourceFile: 'action.yml',
-      descriptions: [],
-    }
-
-    const step = {
-      actionReference: 'owner/repo',
-      uses: 'owner/repo@v1',
-      with: {
-        timeout: '300',
-      },
-      lineInBlock: 1,
-    }
-
-    const errors = validateStep(step, schema, 1)
-
-    expect(errors).toHaveLength(0)
+  // Type validation removed - action.yaml schema doesn't support datatyping
+  it.skip('should accept valid number values', () => {
+    // Test skipped - type validation removed
   })
 
-  it('should accept unquoted number values in YAML', () => {
-    const schema: ActionSchema = {
-      actionReference: 'owner/repo',
-      alternativeNames: [],
-      inputs: new Map([['count', { required: false, type: 'number' }]]),
-      outputs: new Set(),
-      sourceFile: 'action.yml',
-      descriptions: [],
-    }
-
-    const yaml = `
-- uses: owner/repo@v1
-  with:
-    count: 42
-`
-    const schemas = new Map([['owner/repo', schema]])
-    const steps = findReferencedSteps(yaml, schemas)
-    const errors = validateStep(steps[0], schema, 1)
-
-    expect(errors).toHaveLength(0)
+  // Type validation removed - action.yaml schema doesn't support datatyping
+  it.skip('should accept unquoted number values in YAML', () => {
+    // Test skipped - type validation removed
   })
 
-  it('should validate input options', () => {
-    const schema: ActionSchema = {
-      actionReference: 'owner/repo',
-      alternativeNames: [],
-      inputs: new Map([
-        [
-          'environment',
-          {
-            required: true,
-            options: ['development', 'staging', 'production'],
-          },
-        ],
-      ]),
-      outputs: new Set(),
-      sourceFile: 'action.yml',
-      descriptions: [],
-    }
-
-    const step = {
-      actionReference: 'owner/repo',
-      uses: 'owner/repo@v1',
-      with: {
-        environment: 'prod',
-      },
-      lineInBlock: 1,
-    }
-
-    const errors = validateStep(step, schema, 1)
-
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toContain('development, staging, production')
+  // Options validation removed - action.yaml schema doesn't support datatyping
+  it.skip('should validate input options', () => {
+    // Test skipped - options validation removed
   })
 
-  it('should accept valid option values', () => {
-    const schema: ActionSchema = {
-      actionReference: 'owner/repo',
-      alternativeNames: [],
-      inputs: new Map([
-        [
-          'environment',
-          {
-            required: true,
-            options: ['development', 'staging', 'production'],
-          },
-        ],
-      ]),
-      outputs: new Set(),
-      sourceFile: 'action.yml',
-      descriptions: [],
-    }
-
-    const step = {
-      actionReference: 'owner/repo',
-      uses: 'owner/repo@v1',
-      with: {
-        environment: 'production',
-      },
-      lineInBlock: 1,
-    }
-
-    const errors = validateStep(step, schema, 1)
-
-    expect(errors).toHaveLength(0)
+  // Options validation removed - action.yaml schema doesn't support datatyping
+  it.skip('should accept valid option values', () => {
+    // Test skipped - options validation removed
   })
 
-  it('should accept quoted option values in YAML', () => {
-    const schema: ActionSchema = {
-      actionReference: 'owner/repo',
-      alternativeNames: [],
-      inputs: new Map([
-        [
-          'environment',
-          {
-            required: true,
-            options: ['development', 'staging', 'production'],
-          },
-        ],
-      ]),
-      outputs: new Set(),
-      sourceFile: 'action.yml',
-      descriptions: [],
-    }
-
-    // Test both single and double quoted values
-    const yaml1 = `
-- uses: owner/repo@v1
-  with:
-    environment: 'production'
-`
-    const yaml2 = `
-- uses: owner/repo@v1
-  with:
-    environment: "staging"
-`
-
-    const schemas = new Map([['owner/repo', schema]])
-
-    const steps1 = findReferencedSteps(yaml1, schemas)
-    const errors1 = validateStep(steps1[0], schema, 1)
-    expect(errors1).toHaveLength(0)
-
-    const steps2 = findReferencedSteps(yaml2, schemas)
-    const errors2 = validateStep(steps2[0], schema, 1)
-    expect(errors2).toHaveLength(0)
+  // Options validation removed - action.yaml schema doesn't support datatyping
+  it.skip('should accept quoted option values in YAML', () => {
+    // Test skipped - options validation removed
   })
 
-  it('should accept boolean option values', () => {
-    const schema: ActionSchema = {
-      actionReference: 'owner/repo',
-      alternativeNames: [],
-      inputs: new Map([
-        [
-          'enabled',
-          {
-            required: true,
-            options: ['true', 'false'],
-          },
-        ],
-      ]),
-      outputs: new Set(),
-      sourceFile: 'action.yml',
-      descriptions: [],
-    }
-
-    const yaml = `
-- uses: owner/repo@v1
-  with:
-    enabled: 'true'
-`
-    const schemas = new Map([['owner/repo', schema]])
-    const steps = findReferencedSteps(yaml, schemas)
-    const errors = validateStep(steps[0], schema, 1)
-
-    expect(errors).toHaveLength(0)
+  // Options validation removed - action.yaml schema doesn't support datatyping
+  it.skip('should accept boolean option values', () => {
+    // Test skipped - options validation removed
   })
 
   it('should skip validation for expressions', () => {
@@ -491,14 +230,8 @@ describe('validateStep', () => {
       actionReference: 'owner/repo',
       alternativeNames: [],
       inputs: new Map([
-        ['debug', { required: false, type: 'boolean' }],
-        [
-          'environment',
-          {
-            required: true,
-            options: ['development', 'staging', 'production'],
-          },
-        ],
+        ['debug', { required: false }],
+        ['environment', { required: true }],
       ]),
       outputs: new Set(),
       sourceFile: 'action.yml',
@@ -524,9 +257,7 @@ describe('validateStep', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
       alternativeNames: [],
-      inputs: new Map([
-        ['environment', { required: true, options: ['dev', 'prod'] }],
-      ]),
+      inputs: new Map([['environment', { required: true }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
       descriptions: [],
@@ -550,7 +281,7 @@ describe('validateStep', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
       alternativeNames: [],
-      inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
+      inputs: new Map([['debug', { required: false }]]),
       outputs: new Set(),
       sourceFile: 'action.yml',
       descriptions: [],
@@ -569,7 +300,8 @@ describe('validateStep', () => {
 
     const errors = validateStep(step, schema, 1)
 
-    expect(errors.length).toBeGreaterThanOrEqual(3)
+    // Should only report unknown inputs (2 errors), not type validation
+    expect(errors.length).toBe(2)
   })
 
   it('should handle steps with no inputs', () => {

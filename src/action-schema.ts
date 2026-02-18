@@ -48,25 +48,13 @@ export async function loadActionSchema(
   }
 
   // Parse inputs
-  const inputs = new Map<
-    string,
-    { required: boolean; type?: string; options?: string[] }
-  >()
+  const inputs = new Map<string, { required: boolean }>()
   if (action.inputs && typeof action.inputs === 'object') {
     for (const [inputName, inputDef] of Object.entries(action.inputs)) {
       if (inputDef && typeof inputDef === 'object') {
         const def = inputDef as Record<string, unknown>
 
-        // Determine input type from description or type field
-        let inputType: string | undefined
-        let options: string[] | undefined
-
-        // Check for explicit type
-        if (typeof def.type === 'string') {
-          inputType = def.type.toLowerCase()
-        }
-
-        // Parse description for type hints
+        // Parse description for example extraction
         const description =
           typeof def.description === 'string' ? def.description : ''
 
@@ -75,34 +63,8 @@ export async function loadActionSchema(
           descriptions.push(description)
         }
 
-        if (description.toLowerCase().includes('boolean')) {
-          inputType = 'boolean'
-        } else if (description.toLowerCase().includes('number')) {
-          inputType = 'number'
-        }
-
-        // Check for options/enum in description
-        // Match everything after "Options:" until we hit a period, semicolon, or "default:"
-        const optionsMatch = description.match(
-          /(?:options?|choices?|valid values?):\s*([^.;]+?)(?:\.|;|,?\s*default:|\s*$)/i
-        )
-        if (optionsMatch) {
-          // Strip surrounding brackets if present (e.g., "[error, warning]" -> "error, warning")
-          let optionsText = optionsMatch[1].trim()
-          if (optionsText.startsWith('[') && optionsText.endsWith(']')) {
-            optionsText = optionsText.slice(1, -1)
-          }
-          
-          options = optionsText
-            .split(/[,\s]+/)
-            .map((s) => s.trim().replace(/^['"`]|['"`]$/g, ''))
-            .filter((s) => s.length > 0)
-        }
-
         inputs.set(inputName, {
           required: def.required === true || def.required === 'true',
-          type: inputType,
-          options,
         })
       }
     }

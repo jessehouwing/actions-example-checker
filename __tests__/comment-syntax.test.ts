@@ -225,80 +225,19 @@ with:
       expect(errors).toHaveLength(0)
     })
 
-    it('should detect errors even with comments', () => {
-      const schema: ActionSchema = {
-        actionReference: 'owner/repo',
-        alternativeNames: [],
-        inputs: new Map([
-          ['environment', { required: true, options: ['dev', 'prod'] }],
-        ]),
-        outputs: new Set(),
-        sourceFile: 'action.yml',
-        descriptions: [],
-      }
-
-      const yaml = `
--uses: owner/repo@v1
-  with:
-    environment: staging # invalid value
-`
-      const schemas = new Map([['owner/repo', schema]])
-      const steps = findReferencedSteps(yaml, schemas)
-      const errors = validateStep(steps[0], schema, 1)
-
-      expect(errors.length).toBeGreaterThan(0)
-      expect(errors[0].message).toContain('staging')
+    // Options validation removed - action.yaml schema doesn't support datatyping
+    it.skip('should detect errors even with comments', () => {
+      // Test skipped - options validation removed
     })
 
-    it('should validate multi-line boolean values', () => {
-      const schema: ActionSchema = {
-        actionReference: 'owner/repo',
-        alternativeNames: [],
-        inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
-        outputs: new Set(),
-        sourceFile: 'action.yml',
-        descriptions: [],
-      }
-
-      const yaml = `
-- uses: owner/repo@v1
-  with:
-    debug: |
-      yes
-`
-      const schemas = new Map([['owner/repo', schema]])
-      const steps = findReferencedSteps(yaml, schemas)
-      const errors = validateStep(steps[0], schema, 1)
-
-      expect(errors.length).toBeGreaterThan(0)
-      expect(errors[0].message).toContain('boolean')
+    // Type validation removed - action.yaml schema doesn't support datatyping
+    it.skip('should validate multi-line boolean values', () => {
+      // Test skipped - type validation removed
     })
 
-    it('should validate multi-line option values', () => {
-      const schema: ActionSchema = {
-        actionReference: 'owner/repo',
-        alternativeNames: [],
-        inputs: new Map([
-          ['environment', { required: true, options: ['dev', 'prod'] }],
-        ]),
-        outputs: new Set(),
-        sourceFile: 'action.yml',
-        descriptions: [],
-      }
-
-      const yaml = `
-- uses: owner/repo@v1
-  with:
-    environment: |
-      staging
-`
-      const schemas = new Map([['owner/repo', schema]])
-      const steps = findReferencedSteps(yaml, schemas)
-      const errors = validateStep(steps[0], schema, 1)
-
-      expect(errors.length).toBeGreaterThan(0)
-      expect(errors[0].message).toContain('staging')
-      expect(errors[0].message).toContain('dev, prod')
+    // Options validation removed - action.yaml schema doesn't support datatyping
+    it.skip('should validate multi-line option values', () => {
+      // Test skipped - options validation removed
     })
 
     it('should accept valid multi-line values', () => {

@@ -42,25 +42,9 @@ outputs:
     expect(files).toHaveLength(1)
   })
 
-  it('should load action schema correctly', async () => {
-    const actionYml = `
-name: Test Action
-inputs:
-  environment:
-    description: 'Deployment environment. Options: dev, prod'
-    required: true
-  debug:
-    description: 'Enable debug (boolean)'
-    type: boolean
-`
-    const actionPath = path.join(testDir, 'action.yml')
-    await fs.writeFile(actionPath, actionYml)
-
-    const { loadActionSchema } = await import('../src/action-schema.js')
-    const schema = await loadActionSchema(actionPath, testDir, 'test/repo')
-
-    expect(schema.inputs.size).toBe(2)
-    expect(schema.inputs.get('debug')?.type).toBe('boolean')
+  // Type inference removed - action.yaml schema doesn't support datatyping
+  it.skip('should load action schema correctly', async () => {
+    // Test skipped - type inference removed
   })
 
   it('should extract and validate YAML blocks from markdown', async () => {
@@ -113,40 +97,9 @@ inputs:
     expect(errors[0].message).toContain('unknown')
   })
 
-  it('should validate type constraints end-to-end', async () => {
-    const actionYml = `
-name: Test Action
-inputs:
-  count:
-    description: Count (number)
-    type: number
-  enabled:
-    description: Enabled (boolean)
-    type: boolean
-`
-    const actionPath = path.join(testDir, 'action.yml')
-    await fs.writeFile(actionPath, actionYml)
-
-    const markdown = `
-\`\`\`yaml
-- uses: test/repo@v1
-  with:
-    count: not-a-number
-    enabled: maybe
-\`\`\`
-`
-
-    const { loadActionSchema } = await import('../src/action-schema.js')
-    const { extractYamlCodeBlocks, findReferencedSteps, validateStep } =
-      await import('../src/validator.js')
-
-    const schema = await loadActionSchema(actionPath, testDir, 'test/repo')
-    const schemas = new Map([['test/repo', schema]])
-    const blocks = extractYamlCodeBlocks(markdown)
-    const steps = findReferencedSteps(blocks[0].text, schemas)
-    const errors = validateStep(steps[0], schema, 1)
-
-    expect(errors).toHaveLength(2)
+  // Type validation removed - action.yaml schema doesn't support datatyping
+  it.skip('should validate type constraints end-to-end', async () => {
+    // Test skipped - type validation removed
   })
 
   it('should allow expressions in validation', async () => {

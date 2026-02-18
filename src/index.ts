@@ -244,14 +244,7 @@ export async function run(): Promise<void> {
 export interface ActionSchema {
   actionReference: string
   alternativeNames: string[] // Alternative names (e.g., parent repo for forks)
-  inputs: Map<
-    string,
-    {
-      required: boolean
-      type?: string
-      options?: string[]
-    }
-  >
+  inputs: Map<string, { required: boolean }>
   outputs: Set<string>
   sourceFile: string
   descriptions: string[] // All descriptions from action and inputs (for example extraction)

@@ -297,60 +297,7 @@ export function validateStep(
         continue
       }
 
-      // Validate input type
-      if (inputSchema.type) {
-        if (inputSchema.type === 'boolean') {
-          // Boolean values can be: boolean (unquoted YAML: true/false) or string ('true'/'false')
-          const isValidBoolean =
-            typeof inputValue === 'boolean' ||
-            (typeof inputValue === 'string' &&
-              ['true', 'false'].includes(valueStr.toLowerCase()))
-
-          if (!isValidBoolean) {
-            const line =
-              step.withLines?.get(inputName) ||
-              blockStartLine + step.lineInBlock
-            errors.push({
-              message: `Input '${inputName}' for action '${step.uses}' expects a boolean value, but got '${valueStr}'`,
-              line,
-              column: 1,
-            })
-          }
-        } else if (inputSchema.type === 'number') {
-          // Number values can be: number (unquoted YAML: 42) or string ('42')
-          const isValidNumber =
-            typeof inputValue === 'number' ||
-            (typeof inputValue === 'string' && !isNaN(Number(valueStr)))
-
-          if (!isValidNumber) {
-            const line =
-              step.withLines?.get(inputName) ||
-              blockStartLine + step.lineInBlock
-            errors.push({
-              message: `Input '${inputName}' for action '${step.uses}' expects a number value, but got '${valueStr}'`,
-              line,
-              column: 1,
-            })
-          }
-        }
-      }
-
-      // Validate input options
-      if (inputSchema.options && inputSchema.options.length > 0) {
-        const valueStr = String(inputValue)
-        if (
-          !containsExpression(valueStr) &&
-          !inputSchema.options.includes(valueStr)
-        ) {
-          const line =
-            step.withLines?.get(inputName) || blockStartLine + step.lineInBlock
-          errors.push({
-            message: `Input '${inputName}' for action '${step.uses}' expects one of [${inputSchema.options.join(', ')}], but got '${valueStr}'`,
-            line,
-            column: 1,
-          })
-        }
-      }
+      // Type and options validation removed as action.yaml schema doesn't support datatyping
     }
   }
 
