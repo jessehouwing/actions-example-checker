@@ -57,36 +57,68 @@ describe('normalizeValue', () => {
   })
 
   it('should handle all GitHub Actions literal expression formats', () => {
-    // Null literal
+    // Null literal (case-sensitive)
     expect(normalizeValue('${{ null }}')).toBe('${{ null }}')
     
-    // Boolean literals
+    // Boolean literals (case-sensitive)
     expect(normalizeValue('${{ false }}')).toBe('${{ false }}')
     expect(normalizeValue('${{ true }}')).toBe('${{ true }}')
+    
+    // Special number values (case-sensitive)
+    expect(normalizeValue('${{ NaN }}')).toBe('${{ NaN }}')
+    expect(normalizeValue('${{ Infinity }}')).toBe('${{ Infinity }}')
     
     // Integer number
     expect(normalizeValue('${{ 711 }}')).toBe('${{ 711 }}')
     
-    // Negative float number
+    // Negative/positive numbers
     expect(normalizeValue('${{ -9.2 }}')).toBe('${{ -9.2 }}')
+    expect(normalizeValue('${{ +42 }}')).toBe('${{ +42 }}')
     
-    // Hex number (lowercase)
+    // Hex numbers (0x prefix, case insensitive)
     expect(normalizeValue('${{ 0xff }}')).toBe('${{ 0xff }}')
-    
-    // Hex number (uppercase)
     expect(normalizeValue('${{ 0xFF }}')).toBe('${{ 0xFF }}')
+    expect(normalizeValue('${{ 0xABCD }}')).toBe('${{ 0xABCD }}')
+    
+    // Octal numbers (0o prefix)
+    expect(normalizeValue('${{ 0o777 }}')).toBe('${{ 0o777 }}')
+    expect(normalizeValue('${{ 0o123 }}')).toBe('${{ 0o123 }}')
     
     // Exponential notation
     expect(normalizeValue('${{ -2.99e-2 }}')).toBe('${{ -2.99e-2 }}')
     expect(normalizeValue('${{ 1.5e10 }}')).toBe('${{ 1.5e10 }}')
     expect(normalizeValue('${{ 2E5 }}')).toBe('${{ 2E5 }}')
+    expect(normalizeValue('${{ 1.5E+10 }}')).toBe('${{ 1.5E+10 }}')
     
     // String with escaped single quotes ('' escapes to ')
     expect(normalizeValue("${{ 'It''s open source!' }}")).toBe("${{ 'It''s open source!' }}")
     
-    // Regular string literals
+    // Regular string literals (only single quotes supported)
     expect(normalizeValue("${{ 'Mona the Octocat' }}")).toBe("${{ 'Mona the Octocat' }}")
-    expect(normalizeValue('${{ "double quoted" }}')).toBe('${{ "double quoted" }}')
+  })
+
+  it('should reject double quotes in expressions as non-literal', () => {
+    // GitHub Actions does NOT support double quotes in expressions
+    // These should be treated as non-literal expressions
+    expect(normalizeValue('${{ "string" }}')).toBeNull()
+    expect(normalizeValue('${{ "double quoted" }}')).toBeNull()
+    expect(normalizeValue('${{ "test" }}')).toBeNull()
+  })
+
+  it('should be case-sensitive for keywords', () => {
+    // Correct case - literals
+    expect(normalizeValue('${{ true }}')).toBe('${{ true }}')
+    expect(normalizeValue('${{ false }}')).toBe('${{ false }}')
+    expect(normalizeValue('${{ null }}')).toBe('${{ null }}')
+    expect(normalizeValue('${{ NaN }}')).toBe('${{ NaN }}')
+    expect(normalizeValue('${{ Infinity }}')).toBe('${{ Infinity }}')
+    
+    // Wrong case - non-literal (treated as named values/functions)
+    expect(normalizeValue('${{ True }}')).toBeNull()
+    expect(normalizeValue('${{ FALSE }}')).toBeNull()
+    expect(normalizeValue('${{ NULL }}')).toBeNull()
+    expect(normalizeValue('${{ nan }}')).toBeNull()
+    expect(normalizeValue('${{ infinity }}')).toBeNull()
   })
 
   it('should collapse whitespace in literal expressions', () => {
