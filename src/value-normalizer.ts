@@ -219,3 +219,105 @@ export function normalizeNumber(value: unknown): number | null {
 export function validateMatch(value: string, pattern: RegExp): boolean {
   return pattern.test(value)
 }
+
+/**
+ * Split a multi-value input using the specified separator(s)
+ *
+ * @param value - The input value to split
+ * @param separators - Array of separators to use (e.g., [','], [',', ';'], ['newline'])
+ * @returns Array of split values, or null if value contains non-literal expressions
+ */
+export function splitMultiValue(
+  value: unknown,
+  separators: string[]
+): string[] | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  let str = String(value)
+
+  // Check if the value contains non-literal expressions
+  // If it does, return null to skip validation
+  if (containsNonLiteralExpression(str)) {
+    return null
+  }
+
+  // Remove leading and trailing whitespace
+  str = str.trim()
+
+  // Remove enclosing quotes
+  str = removeEnclosingQuotes(str)
+
+  // Check if any separator is 'newline' or '\n'
+  const hasNewlineSeparator = separators.some(
+    (sep) => sep === 'newline' || sep === '\\n'
+  )
+
+  // Get non-newline separators
+  const nonNewlineSeparators = separators.filter(
+    (sep) => sep !== 'newline' && sep !== '\\n'
+  )
+
+  let items: string[] = []
+
+  // If we have newline separator, split by newlines first
+  if (hasNewlineSeparator) {
+    items = str
+      .split('\n')
+      .map((line) => {
+        // Remove trailing comments from each line
+        line = removeTrailingComment(line.trim())
+        return line
+      })
+      .filter((line) => line.length > 0)
+
+    // If we also have other separators, split each line by those separators
+    if (nonNewlineSeparators.length > 0) {
+      const allItems: string[] = []
+      for (const line of items) {
+        const escapedSeparators = nonNewlineSeparators.map((sep) =>
+          sep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        )
+        const separatorPattern = new RegExp(`(${escapedSeparators.join('|')})`)
+
+        const lineItems = line
+          .split(separatorPattern)
+          .filter((item, index) => {
+            // Filter out the separators themselves (odd indices)
+            return index % 2 === 0
+          })
+          .map((item) => removeTrailingComment(item.trim()))
+          .filter((item) => item.length > 0)
+
+        allItems.push(...lineItems)
+      }
+      return allItems
+    }
+
+    return items
+  }
+
+  // For other separators (no newline), split on any of the separators
+  // Build a regex pattern that matches any of the separators
+  const escapedSeparators = separators.map((sep) =>
+    sep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  )
+  const separatorPattern = new RegExp(`(${escapedSeparators.join('|')})`)
+
+  // Split on any separator
+  items = str
+    .split(separatorPattern)
+    .filter((item, index) => {
+      // Filter out the separators themselves (odd indices)
+      return index % 2 === 0
+    })
+    .map((item) => {
+      // Remove trailing comments and trim
+      item = removeTrailingComment(item.trim())
+      return item
+    })
+    .filter((item) => item.length > 0)
+
+  return items
+}

@@ -56,6 +56,61 @@ inputs:
   notification-email:
     type: email
 
+  # Multi-value input with comma separator
+  # Each tag must match the specified pattern
+  # Note: Single separator can be specified as string or single-element array
+  #   separators: ','  (quoted string)
+  #   separators: [',']  (array with single element)
+  tags:
+    type: string
+    separators: ','
+    items:
+      type: string
+      match: '^[a-z0-9-]+$'
+
+  # Multi-value input with multiple separators
+  # Values can be separated by comma, semicolon, or pipe
+  mixed-separators:
+    type: string
+    separators: [',', ';', '|']
+    items:
+      type: string
+
+  # Multi-value input with newline separator (default when items is specified)
+  # Each environment must be one of the specified options
+  environments:
+    type: string
+    separators: newline
+    items:
+      type: choice
+      options:
+        - development
+        - staging
+        - production
+
+  # Multi-value with numbers
+  ports:
+    type: string
+    separators: ','
+    items:
+      type: number
+
+  # Multi-value with combined newline and comma separators
+  # Split by newline first, then by comma within each line
+  combined-separators:
+    type: string
+    separators: ['newline', ',']
+    items:
+      type: string
+      match: '^[a-z0-9-]+$'
+
+  # Multi-value with any type (no validation)
+  flexible-items:
+    type: string
+    separators: ','
+    items:
+      type: any
+
 # Validate outputs (optional but recommended)
 outputs:
   deployment-id:

@@ -215,6 +215,136 @@ inputs:
       - error
 ```
 
+#### Any Type
+
+Accepts any value without validation. Use this when you want to skip type checking for an input:
+
+```yaml
+inputs:
+  custom-data:
+    type: any
+
+  # Also works with multi-value inputs
+  flexible-list:
+    type: string
+    separators: ','
+    items:
+      type: any
+```
+
+#### Multi-Value Type
+
+Validates inputs that contain multiple values separated by delimiter(s). Each value is validated against the specified type and pattern.
+
+```yaml
+inputs:
+  # Single separator (comma)
+  tags:
+    type: string
+    separators: ','
+    items:
+      type: string
+      match: '^[a-z0-9-]+$'
+
+  # Multiple separators (comma, semicolon, or pipe)
+  flexible-tags:
+    type: string
+    separators: [',', ';', '|']
+    items:
+      type: string
+
+  # Newline-separated environments
+  environments:
+    type: string
+    separators: newline # Can also use '\n'
+    items:
+      type: choice
+      options:
+        - development
+        - staging
+        - production
+
+  # Comma-separated port numbers
+  ports:
+    type: string
+    separators: ','
+    items:
+      type: number
+
+  # Combined newline AND comma separators
+  # Split by newline first, then by comma within each line
+  combined:
+    type: string
+    separators: ['newline', ',']
+    items:
+      type: string
+```
+
+**Separator format options:**
+
+The `separators` field accepts:
+
+- **String**: `separators: ','` - single separator (must be quoted for special YAML characters like `,`, `[`, `{`)
+- **Array**: `separators: [',']` - single separator in array format
+- **Multiple separators**: `separators: [',', ';', '|']` - splits on any of the specified separators
+- **Combined with newline**: `separators: ['newline', ',']` - splits by newline first, then by comma within each line
+
+All these are equivalent for a single comma separator:
+
+```yaml
+separators: ','      # quoted string (required for comma)
+separators: [',']    # single-element array
+```
+
+For characters that aren't special in YAML, quotes are optional:
+
+```yaml
+separators: ;        # unquoted (works for semicolon)
+separators: ';'      # quoted (also works)
+```
+
+**Supported separators:**
+
+- `,` - Comma (must be quoted: `','` or in array: `[',']`)
+- `;` - Semicolon
+- `|` - Pipe
+- `newline` or `\n` - Newline (for multiline inputs with `|` or `>`)
+- Any single character
+- Arrays of separators: `[',', ';', '|']` - splits on any of the specified separators
+- **Combined newline + others**: `['newline', ',']` - splits by newline first, then by comma within each line
+
+**Usage examples:**
+
+```yaml
+# Single separator (comma)
+- uses: owner/action@v1
+  with:
+    tags: tag1, tag-2, tag3
+
+# Multiple separators (comma, semicolon, or pipe)
+- uses: owner/action@v1
+  with:
+    tags: tag1, tag-2; tag3| tag4
+
+# Newline-separated (multiline)
+- uses: owner/action@v1
+  with:
+    environments: |
+      development
+      staging
+      production
+
+# Combined newline AND comma - splits by newline, then by comma
+- uses: owner/action@v1
+  with:
+    tags: |
+      tag1, tag2, tag3
+      tag4, tag5
+      tag6
+```
+
+**Note:** If `items` is specified without `separators`, it defaults to `newline`.
+
 ### Value Normalization
 
 Before validation, values are normalized by:

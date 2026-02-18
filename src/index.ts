@@ -251,6 +251,13 @@ export interface ActionSchema {
       type?: string
       options?: string[]
       match?: RegExp // Compiled regex pattern from schema
+      separators?: string[] // Separators for multi-value inputs
+      items?: {
+        // Validation for each item in multi-value inputs
+        type?: string
+        options?: string[]
+        match?: RegExp
+      }
     }
   >
   outputs: Set<string>

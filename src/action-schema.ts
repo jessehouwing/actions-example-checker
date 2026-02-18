@@ -57,7 +57,18 @@ export async function loadActionSchema(
   // Parse inputs
   const inputs = new Map<
     string,
-    { required: boolean; type?: string; options?: string[]; match?: RegExp }
+    {
+      required: boolean
+      type?: string
+      options?: string[]
+      match?: RegExp
+      separators?: string[]
+      items?: {
+        type?: string
+        options?: string[]
+        match?: RegExp
+      }
+    }
   >()
   if (action.inputs && typeof action.inputs === 'object') {
     for (const [inputName, inputDef] of Object.entries(action.inputs)) {
@@ -68,6 +79,14 @@ export async function loadActionSchema(
         let inputType: string | undefined
         let options: string[] | undefined
         let match: RegExp | undefined
+        let separators: string[] | undefined
+        let items:
+          | {
+              type?: string
+              options?: string[]
+              match?: RegExp
+            }
+          | undefined
 
         // Check for explicit type in action.yml
         if (typeof def.type === 'string') {
@@ -93,6 +112,14 @@ export async function loadActionSchema(
           inputType = resolvedType.type
           options = resolvedType.options
           match = resolvedType.match
+          separators = resolvedType.separators
+          if (resolvedType.items) {
+            items = {
+              type: resolvedType.items.type,
+              options: resolvedType.items.options,
+              match: resolvedType.items.match,
+            }
+          }
         }
 
         inputs.set(inputName, {
@@ -100,6 +127,8 @@ export async function loadActionSchema(
           type: inputType,
           options,
           match,
+          separators,
+          items,
         })
       }
     }
