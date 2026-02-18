@@ -270,16 +270,48 @@ inputs:
     separators: ','
     items:
       type: number
+
+  # Combined newline AND comma separators
+  # Split by newline first, then by comma within each line
+  combined:
+    type: string
+    separators: ['newline', ',']
+    items:
+      type: string
+```
+
+**Separator format options:**
+
+The `separators` field accepts:
+
+- **String**: `separators: ','` - single separator (must be quoted for special YAML characters like `,`, `[`, `{`)
+- **Array**: `separators: [',']` - single separator in array format
+- **Multiple separators**: `separators: [',', ';', '|']` - splits on any of the specified separators
+- **Combined with newline**: `separators: ['newline', ',']` - splits by newline first, then by comma within each line
+
+All these are equivalent for a single comma separator:
+
+```yaml
+separators: ','      # quoted string (required for comma)
+separators: [',']    # single-element array
+```
+
+For characters that aren't special in YAML, quotes are optional:
+
+```yaml
+separators: ;        # unquoted (works for semicolon)
+separators: ';'      # quoted (also works)
 ```
 
 **Supported separators:**
 
-- `,` - Comma
+- `,` - Comma (must be quoted: `','` or in array: `[',']`)
 - `;` - Semicolon
 - `|` - Pipe
 - `newline` or `\n` - Newline (for multiline inputs with `|` or `>`)
 - Any single character
 - Arrays of separators: `[',', ';', '|']` - splits on any of the specified separators
+- **Combined newline + others**: `['newline', ',']` - splits by newline first, then by comma within each line
 
 **Usage examples:**
 
@@ -301,6 +333,14 @@ inputs:
       development
       staging
       production
+
+# Combined newline AND comma - splits by newline, then by comma
+- uses: owner/action@v1
+  with:
+    tags: |
+      tag1, tag2, tag3
+      tag4, tag5
+      tag6
 ```
 
 **Note:** If `items` is specified without `separators`, it defaults to `newline`.

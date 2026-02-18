@@ -67,6 +67,31 @@ describe('Multi-value input support', () => {
       const result = splitMultiValue(value, ['\\n'])
       expect(result).toEqual(['item1', 'item2', 'item3'])
     })
+
+    it('should handle newline AND comma separators together', () => {
+      const value = 'item1, item2\nitem3, item4, item5\nitem6'
+      const result = splitMultiValue(value, ['newline', ','])
+      expect(result).toEqual([
+        'item1',
+        'item2',
+        'item3',
+        'item4',
+        'item5',
+        'item6',
+      ])
+    })
+
+    it('should handle newline AND multiple other separators', () => {
+      const value = 'a, b; c\nd, e| f\ng'
+      const result = splitMultiValue(value, ['newline', ',', ';', '|'])
+      expect(result).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g'])
+    })
+
+    it('should handle comments with newline and comma separators', () => {
+      const value = 'item1, item2 # comment\nitem3, item4'
+      const result = splitMultiValue(value, ['newline', ','])
+      expect(result).toEqual(['item1', 'item2', 'item3', 'item4'])
+    })
   })
 
   describe('Schema definition with items', () => {
@@ -158,6 +183,138 @@ inputs:
           'staging',
           'production',
         ])
+      }
+    })
+
+    it('should support single separator as string (unquoted)', async () => {
+      const actionPath = path.join(testDir, 'action.yml')
+      const schemaPath = path.join(testDir, 'action.schema.yml')
+
+      await fs.writeFile(actionPath, 'name: Test\n')
+      await fs.writeFile(
+        schemaPath,
+        `
+inputs:
+  tags:
+    type: string
+    separators: ;
+    items:
+      type: string
+`
+      )
+
+      const schema = await loadActionSchemaDefinition(actionPath)
+      expect(schema).not.toBeNull()
+
+      const tagsDef = schema?.inputs?.tags
+      if (typeof tagsDef !== 'string') {
+        expect(tagsDef?.separators).toBe(';')
+      }
+    })
+
+    it('should support single separator as string (single-quoted)', async () => {
+      const actionPath = path.join(testDir, 'action.yml')
+      const schemaPath = path.join(testDir, 'action.schema.yml')
+
+      await fs.writeFile(actionPath, 'name: Test\n')
+      await fs.writeFile(
+        schemaPath,
+        `
+inputs:
+  tags:
+    type: string
+    separators: ','
+    items:
+      type: string
+`
+      )
+
+      const schema = await loadActionSchemaDefinition(actionPath)
+      expect(schema).not.toBeNull()
+
+      const tagsDef = schema?.inputs?.tags
+      if (typeof tagsDef !== 'string') {
+        expect(tagsDef?.separators).toBe(',')
+      }
+    })
+
+    it('should support single separator as string (double-quoted)', async () => {
+      const actionPath = path.join(testDir, 'action.yml')
+      const schemaPath = path.join(testDir, 'action.schema.yml')
+
+      await fs.writeFile(actionPath, 'name: Test\n')
+      await fs.writeFile(
+        schemaPath,
+        `
+inputs:
+  tags:
+    type: string
+    separators: ","
+    items:
+      type: string
+`
+      )
+
+      const schema = await loadActionSchemaDefinition(actionPath)
+      expect(schema).not.toBeNull()
+
+      const tagsDef = schema?.inputs?.tags
+      if (typeof tagsDef !== 'string') {
+        expect(tagsDef?.separators).toBe(',')
+      }
+    })
+
+    it('should support single separator as array', async () => {
+      const actionPath = path.join(testDir, 'action.yml')
+      const schemaPath = path.join(testDir, 'action.schema.yml')
+
+      await fs.writeFile(actionPath, 'name: Test\n')
+      await fs.writeFile(
+        schemaPath,
+        `
+inputs:
+  tags:
+    type: string
+    separators: [',']
+    items:
+      type: string
+`
+      )
+
+      const schema = await loadActionSchemaDefinition(actionPath)
+      expect(schema).not.toBeNull()
+
+      const tagsDef = schema?.inputs?.tags
+      if (typeof tagsDef !== 'string') {
+        expect(tagsDef?.separators).toEqual([','])
+      }
+    })
+
+    it('should normalize string separator to array in resolveTypeDefinition', async () => {
+      const actionPath = path.join(testDir, 'action.yml')
+      const schemaPath = path.join(testDir, 'action.schema.yml')
+
+      await fs.writeFile(actionPath, 'name: Test\n')
+      await fs.writeFile(
+        schemaPath,
+        `
+inputs:
+  tags:
+    type: string
+    separators: ','
+    items:
+      type: string
+`
+      )
+
+      const schema = await loadActionSchemaDefinition(actionPath)
+      expect(schema).not.toBeNull()
+
+      const tagsDef = schema?.inputs?.tags
+      if (typeof tagsDef !== 'string') {
+        const resolved = resolveTypeDefinition(tagsDef, {})
+        // String should be normalized to array
+        expect(resolved.separators).toEqual([','])
       }
     })
 

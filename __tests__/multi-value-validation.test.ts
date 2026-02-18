@@ -407,4 +407,83 @@ inputs:
       expect(errors).toHaveLength(0)
     })
   })
+
+  describe('Combined newline and other separators', () => {
+    it('should validate newline and comma separators together', async () => {
+      const schema = await createTestAction(
+        `
+name: Test Action
+inputs:
+  tags:
+    description: 'Tags'
+    required: false
+`,
+        `
+inputs:
+  tags:
+    type: string
+    separators: ['newline', ',']
+    items:
+      type: string
+      match: "^[a-z0-9-]+$"
+`
+      )
+
+      const yaml = `
+- uses: owner/test-action@v1
+  with:
+    tags: |
+      tag1, tag2, tag3
+      tag4, tag5
+      tag6
+`
+      const schemas = new Map<string, ActionSchema>()
+      schemas.set('owner/test-action', schema)
+
+      const steps = findReferencedSteps(yaml, schemas)
+      expect(steps).toHaveLength(1)
+
+      const errors = validateStep(steps[0], schema, 1)
+      expect(errors).toHaveLength(0)
+    })
+
+    it('should report errors with newline and comma separators', async () => {
+      const schema = await createTestAction(
+        `
+name: Test Action
+inputs:
+  tags:
+    description: 'Tags'
+    required: false
+`,
+        `
+inputs:
+  tags:
+    type: string
+    separators: ['newline', ',']
+    items:
+      type: string
+      match: "^[a-z0-9-]+$"
+`
+      )
+
+      const yaml = `
+- uses: owner/test-action@v1
+  with:
+    tags: |
+      valid-tag, INVALID
+      another-valid, BAD_TAG
+`
+      const schemas = new Map<string, ActionSchema>()
+      schemas.set('owner/test-action', schema)
+
+      const steps = findReferencedSteps(yaml, schemas)
+      expect(steps).toHaveLength(1)
+
+      const errors = validateStep(steps[0], schema, 1)
+      expect(errors.length).toBeGreaterThan(0)
+      expect(errors.some((e) => e.message.includes('INVALID'))).toBe(true)
+      expect(errors.some((e) => e.message.includes('BAD_TAG'))).toBe(true)
+    })
+  })
 })

@@ -254,10 +254,16 @@ export function splitMultiValue(
     (sep) => sep === 'newline' || sep === '\\n'
   )
 
-  // For newline separator, split on actual newlines
+  // Get non-newline separators
+  const nonNewlineSeparators = separators.filter(
+    (sep) => sep !== 'newline' && sep !== '\\n'
+  )
+
+  let items: string[] = []
+
+  // If we have newline separator, split by newlines first
   if (hasNewlineSeparator) {
-    // Split on newlines and filter out empty lines
-    return str
+    items = str
       .split('\n')
       .map((line) => {
         // Remove trailing comments from each line
@@ -265,9 +271,34 @@ export function splitMultiValue(
         return line
       })
       .filter((line) => line.length > 0)
+
+    // If we also have other separators, split each line by those separators
+    if (nonNewlineSeparators.length > 0) {
+      const allItems: string[] = []
+      for (const line of items) {
+        const escapedSeparators = nonNewlineSeparators.map((sep) =>
+          sep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        )
+        const separatorPattern = new RegExp(`(${escapedSeparators.join('|')})`)
+
+        const lineItems = line
+          .split(separatorPattern)
+          .filter((item, index) => {
+            // Filter out the separators themselves (odd indices)
+            return index % 2 === 0
+          })
+          .map((item) => removeTrailingComment(item.trim()))
+          .filter((item) => item.length > 0)
+
+        allItems.push(...lineItems)
+      }
+      return allItems
+    }
+
+    return items
   }
 
-  // For other separators, split on any of the separators
+  // For other separators (no newline), split on any of the separators
   // Build a regex pattern that matches any of the separators
   const escapedSeparators = separators.map((sep) =>
     sep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -275,7 +306,7 @@ export function splitMultiValue(
   const separatorPattern = new RegExp(`(${escapedSeparators.join('|')})`)
 
   // Split on any separator
-  const items = str
+  items = str
     .split(separatorPattern)
     .filter((item, index) => {
       // Filter out the separators themselves (odd indices)
