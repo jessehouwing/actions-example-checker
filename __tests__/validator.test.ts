@@ -154,7 +154,6 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
-      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         'valid-input': 'value',
@@ -180,7 +179,6 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
-      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         debug: 'yes',
@@ -205,7 +203,6 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
-      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         debug: 'true',
@@ -229,7 +226,6 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
-      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         timeout: 'not-a-number',
@@ -254,7 +250,6 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
-      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         timeout: '300',
@@ -286,7 +281,6 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
-      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         environment: 'prod',
@@ -319,7 +313,6 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
-      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         environment: 'production',
@@ -352,7 +345,6 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
-      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         debug: '${{ inputs.debug }}',
@@ -379,7 +371,6 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
-      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         environment: 'prefix-${{ inputs.suffix }}',
@@ -403,7 +394,6 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
-      alternativeNames: [],
       uses: 'owner/repo@v1',
       with: {
         debug: 'yes',
@@ -422,7 +412,6 @@ describe('validateStep', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
       alternativeNames: [],
-      alternativeNames: [],
       inputs: new Map(),
       outputs: new Set(),
       sourceFile: 'action.yml',
@@ -430,7 +419,6 @@ describe('validateStep', () => {
 
     const step = {
       actionReference: 'owner/repo',
-      alternativeNames: [],
       uses: 'owner/repo@v1',
       lineInBlock: 1,
     }

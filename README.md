@@ -62,6 +62,7 @@ If your repository is a fork (e.g., `jessehouwing/azdo-marketplace` forked from 
 ```
 
 This allows documentation to reference either:
+
 - `uses: jessehouwing/azdo-marketplace@v1` (fork name)
 - `uses: microsoft/azure-devops-extension-tasks@v1` (parent name)
 
@@ -69,13 +70,13 @@ Both will be validated against the same `action.yml` schema from your repository
 
 ## Inputs
 
-| Input              | Description                                                                                | Required | Default                   |
-| ------------------ | ------------------------------------------------------------------------------------------ | -------- | ------------------------- |
-| `token`            | GitHub token for API access to check fork relationships (enables fork detection)           | No       | `${{ github.token }}`     |
-| `repository`       | Repository name in 'owner/repo' format (auto-detected if not provided)                    | No       | Auto-detected             |
-| `repository-path`  | Path to the repository root (defaults to current directory)                                | No       | `.`                       |
-| `action-pattern`   | Glob pattern to find action files                                                          | No       | `{**/,}action.{yml,yaml}` |
-| `docs-pattern`     | Glob pattern to find documentation files                                                   | No       | `**/*.md`                 |
+| Input             | Description                                                                      | Required | Default                   |
+| ----------------- | -------------------------------------------------------------------------------- | -------- | ------------------------- |
+| `token`           | GitHub token for API access to check fork relationships (enables fork detection) | No       | `${{ github.token }}`     |
+| `repository`      | Repository name in 'owner/repo' format (auto-detected if not provided)           | No       | Auto-detected             |
+| `repository-path` | Path to the repository root (defaults to current directory)                      | No       | `.`                       |
+| `action-pattern`  | Glob pattern to find action files                                                | No       | `{**/,}action.{yml,yaml}` |
+| `docs-pattern`    | Glob pattern to find documentation files                                         | No       | `**/*.md`                 |
 
 ## Outputs
 
@@ -100,7 +101,7 @@ Both will be validated against the same `action.yml` schema from your repository
    - Validates input values against allowed options when specified
    - Validates output references (e.g., `steps.my-step.outputs.result`) exist in the action schema
    - Skips validation for expressions containing `${{ ... }}`
-5. **Error Reporting**: Reports errors using GitHub Actions workflow commands with file, line, and column information
+6. **Error Reporting**: Reports errors using GitHub Actions workflow commands with file, line, and column information
 
 ## Example
 
