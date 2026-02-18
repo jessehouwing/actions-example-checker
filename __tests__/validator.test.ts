@@ -170,7 +170,7 @@ describe('validateStep', () => {
     expect(errors[0].message).toContain('unknown-input')
   })
 
-  it('should validate boolean types', () => {
+  it('should accept truthy boolean values', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
       alternativeNames: [],
@@ -191,8 +191,8 @@ describe('validateStep', () => {
 
     const errors = validateStep(step, schema, 1)
 
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toContain('boolean')
+    // 'yes' is a truthy value and should be accepted
+    expect(errors).toHaveLength(0)
   })
 
   it('should accept valid boolean values', () => {
@@ -560,7 +560,7 @@ describe('validateStep', () => {
       actionReference: 'owner/repo',
       uses: 'owner/repo@v1',
       with: {
-        debug: 'yes',
+        debug: 'yes', // 'yes' is now a valid truthy boolean
         unknown1: 'value1',
         unknown2: 'value2',
       },
@@ -569,7 +569,8 @@ describe('validateStep', () => {
 
     const errors = validateStep(step, schema, 1)
 
-    expect(errors.length).toBeGreaterThanOrEqual(3)
+    // Only 2 errors for unknown inputs (debug:'yes' is now valid)
+    expect(errors.length).toBe(2)
   })
 
   it('should handle steps with no inputs', () => {

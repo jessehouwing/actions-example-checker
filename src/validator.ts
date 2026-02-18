@@ -1,5 +1,12 @@
 import * as yaml from 'yaml'
 import { ActionSchema } from './index.js'
+import {
+  normalizeValue,
+  normalizeBoolean,
+  normalizeNumber,
+  containsExpression,
+  validateMatch,
+} from './value-normalizer.js'
 
 interface YamlBlock {
   text: string
@@ -291,64 +298,81 @@ export function validateStep(
         continue
       }
 
-      // Skip validation for expressions
-      const valueStr = String(inputValue)
-      if (containsExpression(valueStr)) {
+      // Normalize the value for validation
+      const normalizedValue = normalizeValue(inputValue)
+      
+      // Skip validation for expressions or null (non-literal expressions)
+      if (normalizedValue === null || containsExpression(String(inputValue))) {
         continue
       }
 
       // Validate input type
       if (inputSchema.type) {
         if (inputSchema.type === 'boolean') {
-          // Boolean values can be: boolean (unquoted YAML: true/false) or string ('true'/'false')
-          const isValidBoolean =
-            typeof inputValue === 'boolean' ||
-            (typeof inputValue === 'string' &&
-              ['true', 'false'].includes(valueStr.toLowerCase()))
-
-          if (!isValidBoolean) {
+          const boolValue = normalizeBoolean(inputValue)
+          
+          if (boolValue === null) {
             const line =
               step.withLines?.get(inputName) ||
               blockStartLine + step.lineInBlock
             errors.push({
-              message: `Input '${inputName}' for action '${step.uses}' expects a boolean value, but got '${valueStr}'`,
+              message: `Input '${inputName}' for action '${step.uses}' expects a boolean value, but got '${normalizedValue}'`,
               line,
               column: 1,
             })
           }
         } else if (inputSchema.type === 'number') {
-          // Number values can be: number (unquoted YAML: 42) or string ('42')
-          const isValidNumber =
-            typeof inputValue === 'number' ||
-            (typeof inputValue === 'string' && !isNaN(Number(valueStr)))
-
-          if (!isValidNumber) {
+          const numValue = normalizeNumber(inputValue)
+          
+          if (numValue === null) {
             const line =
               step.withLines?.get(inputName) ||
               blockStartLine + step.lineInBlock
             errors.push({
-              message: `Input '${inputName}' for action '${step.uses}' expects a number value, but got '${valueStr}'`,
+              message: `Input '${inputName}' for action '${step.uses}' expects a number value, but got '${normalizedValue}'`,
               line,
               column: 1,
             })
           }
+        } else if (inputSchema.type === 'choice' || inputSchema.type === 'string') {
+          // Validate match pattern for string type
+          if (inputSchema.match && !validateMatch(normalizedValue, inputSchema.match)) {
+            const line =
+              step.withLines?.get(inputName) ||
+              blockStartLine + step.lineInBlock
+            errors.push({
+              message: `Input '${inputName}' for action '${step.uses}' does not match required pattern: ${inputSchema.match}`,
+              line,
+              column: 1,
+            })
+          }
+          
+          // Validate options for choice type
+          if (inputSchema.options && inputSchema.options.length > 0) {
+            if (!inputSchema.options.includes(normalizedValue)) {
+              const line =
+                step.withLines?.get(inputName) ||
+                blockStartLine + step.lineInBlock
+              errors.push({
+                message: `Input '${inputName}' for action '${step.uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
+                line,
+                column: 1,
+              })
+            }
+          }
         }
-      }
-
-      // Validate input options
-      if (inputSchema.options && inputSchema.options.length > 0) {
-        const valueStr = String(inputValue)
-        if (
-          !containsExpression(valueStr) &&
-          !inputSchema.options.includes(valueStr)
-        ) {
-          const line =
-            step.withLines?.get(inputName) || blockStartLine + step.lineInBlock
-          errors.push({
-            message: `Input '${inputName}' for action '${step.uses}' expects one of [${inputSchema.options.join(', ')}], but got '${valueStr}'`,
-            line,
-            column: 1,
-          })
+      } else {
+        // No type specified, check options anyway if present (backward compatibility)
+        if (inputSchema.options && inputSchema.options.length > 0) {
+          if (!inputSchema.options.includes(normalizedValue)) {
+            const line =
+              step.withLines?.get(inputName) || blockStartLine + step.lineInBlock
+            errors.push({
+              message: `Input '${inputName}' for action '${step.uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
+              line,
+              column: 1,
+            })
+          }
         }
       }
     }
@@ -408,13 +432,6 @@ export function validateOutputReferences(
   }
 
   return errors
-}
-
-/**
- * Check if a value contains a GitHub Actions expression
- */
-function containsExpression(value: string): boolean {
-  return /\$\{\{.*?\}\}/.test(value)
 }
 
 /**

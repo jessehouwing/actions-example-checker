@@ -42,12 +42,13 @@ outputs:
     expect(schema.outputs.has('output1')).toBe(true)
   })
 
-  it('should detect boolean type from description', async () => {
+  it('should load type from explicit type field in action.yml', async () => {
     const actionYml = `
 name: Test Action
 inputs:
   debug:
-    description: Enable debug mode (boolean)
+    description: Enable debug mode
+    type: boolean
     required: false
 `
     const actionPath = path.join(testDir, 'action.yml')
@@ -58,7 +59,7 @@ inputs:
     expect(schema.inputs.get('debug')?.type).toBe('boolean')
   })
 
-  it('should detect number type from description', async () => {
+  it('should not detect type from description', async () => {
     const actionYml = `
 name: Test Action
 inputs:
@@ -71,22 +72,35 @@ inputs:
 
     const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
 
-    expect(schema.inputs.get('timeout')?.type).toBe('number')
+    // Type should not be detected from description
+    expect(schema.inputs.get('timeout')?.type).toBeUndefined()
   })
 
-  it('should extract options from description', async () => {
+  it('should load type from schema file', async () => {
     const actionYml = `
 name: Test Action
 inputs:
   environment:
-    description: 'Deployment environment. Options: development, staging, production'
+    description: Deployment environment
     required: true
 `
+    const schemaYml = `
+inputs:
+  environment:
+    type: choice
+    options:
+      - development
+      - staging
+      - production
+`
     const actionPath = path.join(testDir, 'action.yml')
+    const schemaPath = path.join(testDir, 'action.schema.yml')
     await fs.writeFile(actionPath, actionYml)
+    await fs.writeFile(schemaPath, schemaYml)
 
     const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
 
+    expect(schema.inputs.get('environment')?.type).toBe('choice')
     const options = schema.inputs.get('environment')?.options
     expect(options).toBeDefined()
     expect(options).toContain('development')
@@ -94,94 +108,80 @@ inputs:
     expect(options).toContain('production')
   })
 
-  it('should extract options with different keywords', async () => {
+  it('should load schema with string type and match pattern', async () => {
     const actionYml = `
 name: Test Action
 inputs:
   level:
-    description: 'Log level. Valid values: debug, info, warn, error'
+    description: Log level
     required: false
 `
+    const schemaYml = `
+inputs:
+  level:
+    type: string
+    match: "^(debug|info|warn|error)$"
+`
     const actionPath = path.join(testDir, 'action.yml')
+    const schemaPath = path.join(testDir, 'action.schema.yml')
     await fs.writeFile(actionPath, actionYml)
+    await fs.writeFile(schemaPath, schemaYml)
 
     const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
 
-    const options = schema.inputs.get('level')?.options
-    expect(options).toBeDefined()
-    expect(options).toContain('debug')
-    expect(options).toContain('error')
+    expect(schema.inputs.get('level')?.type).toBe('string')
+    expect(schema.inputs.get('level')?.match).toBeDefined()
   })
 
-  it('should extract options and stop at default keyword', async () => {
+  it('should load schema with custom types', async () => {
     const actionYml = `
 name: Test Action
 inputs:
-  debug:
-    description: 'Enable debug mode. Options: true, false, default: false'
-    required: false
-  environment:
-    description: 'Target environment. Options: dev, prod. Default is dev'
+  url:
+    description: URL input
     required: false
 `
+    const schemaYml = `
+types:
+  url:
+    type: string
+    match: "^https?://.*"
+inputs:
+  url: url
+`
     const actionPath = path.join(testDir, 'action.yml')
+    const schemaPath = path.join(testDir, 'action.schema.yml')
     await fs.writeFile(actionPath, actionYml)
+    await fs.writeFile(schemaPath, schemaYml)
 
     const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
 
-    const debugOptions = schema.inputs.get('debug')?.options
-    expect(debugOptions).toBeDefined()
-    expect(debugOptions).toEqual(['true', 'false'])
-    expect(debugOptions).not.toContain('default:')
-
-    const envOptions = schema.inputs.get('environment')?.options
-    expect(envOptions).toBeDefined()
-    expect(envOptions).toEqual(['dev', 'prod'])
-    expect(envOptions).not.toContain('Default')
+    expect(schema.inputs.get('url')?.type).toBe('string')
+    expect(schema.inputs.get('url')?.match).toBeDefined()
   })
 
-  it('should extract boolean options correctly', async () => {
+  it('should prefer schema file over explicit type in action.yml', async () => {
     const actionYml = `
 name: Test Action
 inputs:
   enabled:
-    description: 'Feature flag. Options: true, false'
+    description: Feature flag
+    type: string
+`
+    const schemaYml = `
+inputs:
+  enabled:
     type: boolean
 `
     const actionPath = path.join(testDir, 'action.yml')
+    const schemaPath = path.join(testDir, 'action.schema.yml')
     await fs.writeFile(actionPath, actionYml)
+    await fs.writeFile(schemaPath, schemaYml)
 
     const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
 
-    const options = schema.inputs.get('enabled')?.options
-    expect(options).toBeDefined()
-    expect(options).toEqual(['true', 'false'])
+    // Schema file should override action.yml type
     expect(schema.inputs.get('enabled')?.type).toBe('boolean')
-  })
-
-  it('should extract options with square brackets', async () => {
-    const actionYml = `
-name: Test Action
-inputs:
-  check-level:
-    description: 'Check level (options: [error, warning, none, true, false], default: error).'
-    required: false
-  auto-fix:
-    description: 'Auto-fix enabled (options: [true, false], default: false).'
-    required: false
-`
-    const actionPath = path.join(testDir, 'action.yml')
-    await fs.writeFile(actionPath, actionYml)
-
-    const schema = await loadActionSchema(actionPath, testDir, 'owner/repo')
-
-    const checkLevelOptions = schema.inputs.get('check-level')?.options
-    expect(checkLevelOptions).toBeDefined()
-    expect(checkLevelOptions).toEqual(['error', 'warning', 'none', 'true', 'false'])
-
-    const autoFixOptions = schema.inputs.get('auto-fix')?.options
-    expect(autoFixOptions).toBeDefined()
-    expect(autoFixOptions).toEqual(['true', 'false'])
   })
 
   it('should handle subdirectory actions', async () => {
