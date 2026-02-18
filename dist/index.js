@@ -44492,7 +44492,9 @@ function validateStep(step, schema, blockStartLine) {
         for (const [inputName, inputValue] of Object.entries(step.with)) {
             const inputSchema = schema.inputs.get(inputName);
             if (!inputSchema) {
-                const line = step.withLines?.get(inputName) || blockStartLine + step.lineInBlock;
+                const line = step.withLines?.get(inputName)
+                    ? blockStartLine + step.withLines.get(inputName) - 1
+                    : blockStartLine + step.lineInBlock - 1;
                 errors.push({
                     message: `Unknown input '${inputName}' for action '${step.uses}' (schema: ${schema.sourceFile})`,
                     line,
@@ -44500,11 +44502,14 @@ function validateStep(step, schema, blockStartLine) {
                 });
                 continue;
             }
-            const line = step.withLines?.get(inputName) || blockStartLine + step.lineInBlock;
+            const line = step.withLines?.get(inputName)
+                ? blockStartLine + step.withLines.get(inputName) - 1
+                : blockStartLine + step.lineInBlock - 1;
             // Check if this is a multi-value input
             if (inputSchema.items && inputSchema.separators) {
                 // Validate as multi-value input - TypeScript now knows both are defined
                 errors.push(...validateMultiValueInput(inputName, inputValue, {
+                    required: inputSchema.required,
                     separators: inputSchema.separators,
                     items: inputSchema.items,
                 }, step.uses, line));
@@ -44527,6 +44532,10 @@ function validateSingleValueInput(inputName, inputValue, inputSchema, uses, line
     const normalizedValue = normalizeValue(inputValue);
     // Skip validation for expressions or null (non-literal expressions)
     if (normalizedValue === null || containsExpression(String(inputValue))) {
+        return errors;
+    }
+    // Skip validation for optional inputs with empty string values
+    if (!inputSchema.required && normalizedValue === '') {
         return errors;
     }
     // Validate input type
@@ -44600,6 +44609,11 @@ function validateMultiValueInput(inputName, inputValue, inputSchema, uses, line)
     const items = splitMultiValue(inputValue, inputSchema.separators);
     // Skip validation for expressions or null (non-literal expressions)
     if (items === null) {
+        return errors;
+    }
+    // Skip validation for optional inputs with empty or no items
+    if (!inputSchema.required &&
+        (items.length === 0 || items.every((item) => item === ''))) {
         return errors;
     }
     // Validate each item

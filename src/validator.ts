@@ -289,8 +289,9 @@ export function validateStep(
       const inputSchema = schema.inputs.get(inputName)
 
       if (!inputSchema) {
-        const line =
-          step.withLines?.get(inputName) || blockStartLine + step.lineInBlock
+        const line = step.withLines?.get(inputName)
+          ? blockStartLine + step.withLines.get(inputName)! - 1
+          : blockStartLine + step.lineInBlock - 1
         errors.push({
           message: `Unknown input '${inputName}' for action '${step.uses}' (schema: ${schema.sourceFile})`,
           line,
@@ -299,8 +300,9 @@ export function validateStep(
         continue
       }
 
-      const line =
-        step.withLines?.get(inputName) || blockStartLine + step.lineInBlock
+      const line = step.withLines?.get(inputName)
+        ? blockStartLine + step.withLines.get(inputName)! - 1
+        : blockStartLine + step.lineInBlock - 1
 
       // Check if this is a multi-value input
       if (inputSchema.items && inputSchema.separators) {
@@ -310,6 +312,7 @@ export function validateStep(
             inputName,
             inputValue,
             {
+              required: inputSchema.required,
               separators: inputSchema.separators,
               items: inputSchema.items,
             },
@@ -344,6 +347,7 @@ function validateSingleValueInput(
   inputName: string,
   inputValue: unknown,
   inputSchema: {
+    required: boolean
     type?: string
     options?: string[]
     match?: RegExp
@@ -358,6 +362,11 @@ function validateSingleValueInput(
 
   // Skip validation for expressions or null (non-literal expressions)
   if (normalizedValue === null || containsExpression(String(inputValue))) {
+    return errors
+  }
+
+  // Skip validation for optional inputs with empty string values
+  if (!inputSchema.required && normalizedValue === '') {
     return errors
   }
 
@@ -435,6 +444,7 @@ function validateMultiValueInput(
   inputName: string,
   inputValue: unknown,
   inputSchema: {
+    required: boolean
     separators: string[]
     items: {
       type?: string
@@ -452,6 +462,14 @@ function validateMultiValueInput(
 
   // Skip validation for expressions or null (non-literal expressions)
   if (items === null) {
+    return errors
+  }
+
+  // Skip validation for optional inputs with empty or no items
+  if (
+    !inputSchema.required &&
+    (items.length === 0 || items.every((item) => item === ''))
+  ) {
     return errors
   }
 
