@@ -250,7 +250,7 @@ with:
       expect(errors[0].message).toContain('staging')
     })
 
-    it('should validate multi-line boolean values', () => {
+    it('should accept multi-line boolean truthy values', () => {
       const schema: ActionSchema = {
         actionReference: 'owner/repo',
         alternativeNames: [],
@@ -270,8 +270,8 @@ with:
       const steps = findReferencedSteps(yaml, schemas)
       const errors = validateStep(steps[0], schema, 1)
 
-      expect(errors.length).toBeGreaterThan(0)
-      expect(errors[0].message).toContain('boolean')
+      // 'yes' is a truthy boolean value and should be accepted
+      expect(errors.length).toBe(0)
     })
 
     it('should validate multi-line option values', () => {

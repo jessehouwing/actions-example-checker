@@ -250,6 +250,7 @@ export interface ActionSchema {
       required: boolean
       type?: string
       options?: string[]
+      match?: RegExp // Compiled regex pattern from schema
     }
   >
   outputs: Set<string>

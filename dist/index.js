@@ -38836,6 +38836,151 @@ function requireDist () {
 var distExports = requireDist();
 
 /**
+ * Load and parse an action.schema.yml file if it exists
+ */
+async function loadActionSchemaDefinition(actionFilePath) {
+    const actionDir = path$1.dirname(actionFilePath);
+    const actionBaseName = path$1.basename(actionFilePath, path$1.extname(actionFilePath));
+    // Try both .yml and .yaml extensions
+    const schemaFiles = [
+        path$1.join(actionDir, `${actionBaseName}.schema.yml`),
+        path$1.join(actionDir, `${actionBaseName}.schema.yaml`),
+    ];
+    for (const schemaFile of schemaFiles) {
+        try {
+            const content = await promises$1.readFile(schemaFile, 'utf8');
+            const schema = distExports.parse(content);
+            if (!schema || typeof schema !== 'object') {
+                continue;
+            }
+            return validateSchemaDefinition(schema);
+        }
+        catch (error) {
+            // File doesn't exist or couldn't be parsed, try next
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+        }
+    }
+    return null;
+}
+/**
+ * Validate and normalize a schema definition
+ */
+function validateSchemaDefinition(schema) {
+    const result = {};
+    // Validate types section
+    if (schema.types && typeof schema.types === 'object') {
+        result.types = {};
+        for (const [typeName, typeDef] of Object.entries(schema.types)) {
+            if (typeof typeDef === 'object' && typeDef !== null) {
+                result.types[typeName] = validateTypeDefinition(typeDef);
+            }
+        }
+    }
+    // Validate inputs section
+    if (schema.inputs && typeof schema.inputs === 'object') {
+        result.inputs = {};
+        for (const [inputName, inputDef] of Object.entries(schema.inputs)) {
+            if (typeof inputDef === 'string') {
+                // Reference to a custom type
+                result.inputs[inputName] = inputDef;
+            }
+            else if (typeof inputDef === 'object' && inputDef !== null) {
+                result.inputs[inputName] = validateTypeDefinition(inputDef);
+            }
+        }
+    }
+    // Validate outputs section
+    if (schema.outputs && typeof schema.outputs === 'object') {
+        result.outputs = {};
+        for (const [outputName, outputDef] of Object.entries(schema.outputs)) {
+            if (typeof outputDef === 'string') {
+                // Reference to a custom type
+                result.outputs[outputName] = outputDef;
+            }
+            else if (typeof outputDef === 'object' && outputDef !== null) {
+                result.outputs[outputName] = validateTypeDefinition(outputDef);
+            }
+        }
+    }
+    return result;
+}
+/**
+ * Validate a type definition
+ */
+function validateTypeDefinition(def) {
+    const typeDef = def;
+    const type = String(typeDef.type || 'string').toLowerCase();
+    if (!['boolean', 'number', 'string', 'choice'].includes(type)) {
+        throw new Error(`Invalid type: ${type}. Must be one of: boolean, number, string, choice`);
+    }
+    const result = {
+        type: type,
+    };
+    // Validate match for string type
+    if (typeDef.match && typeof typeDef.match === 'string') {
+        if (result.type !== 'string') {
+            throw new Error(`match can only be used with string type`);
+        }
+        result.match = typeDef.match;
+    }
+    // Validate options for choice type
+    if (typeDef.options) {
+        if (result.type !== 'choice') {
+            throw new Error(`options can only be used with choice type`);
+        }
+        if (Array.isArray(typeDef.options)) {
+            result.options = typeDef.options.map(String);
+        }
+    }
+    // Ensure choice type has options
+    if (result.type === 'choice' &&
+        (!result.options || result.options.length === 0)) {
+        throw new Error(`choice type requires options array`);
+    }
+    return result;
+}
+/**
+ * Resolve a type definition, handling custom type references
+ */
+function resolveTypeDefinition(def, customTypes) {
+    // If it's a string, it's a reference to a custom type
+    if (typeof def === 'string') {
+        const customType = customTypes[def];
+        if (!customType) {
+            throw new Error(`Unknown custom type: ${def}`);
+        }
+        def = customType;
+    }
+    const resolved = {
+        type: def.type,
+    };
+    // Compile regex pattern if present
+    if (def.match) {
+        resolved.match = compileRegex(def.match);
+    }
+    // Copy options if present
+    if (def.options) {
+        resolved.options = [...def.options];
+    }
+    return resolved;
+}
+/**
+ * Compile a regex pattern from string notation
+ * Supports both "regex" and /regex/flags notation
+ */
+function compileRegex(pattern) {
+    // Check for /regex/flags notation
+    const slashMatch = pattern.match(/^\/(.+)\/([gimsuvy]*)$/);
+    if (slashMatch) {
+        return new RegExp(slashMatch[1], slashMatch[2]);
+    }
+    // Otherwise treat as plain regex string
+    return new RegExp(pattern);
+}
+
+/**
  * Load and parse an action.yml file
  */
 async function loadActionSchema(actionFilePath, repositoryPath, repository, parentRepo = null) {
@@ -38865,49 +39010,41 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
     if (action.description && typeof action.description === 'string') {
         descriptions.push(action.description);
     }
+    // Load optional schema definition
+    const schemaDefinition = await loadActionSchemaDefinition(actionFilePath);
     // Parse inputs
     const inputs = new Map();
     if (action.inputs && typeof action.inputs === 'object') {
         for (const [inputName, inputDef] of Object.entries(action.inputs)) {
             if (inputDef && typeof inputDef === 'object') {
                 const def = inputDef;
-                // Determine input type from description or type field
+                // Determine input type from explicit type field only
                 let inputType;
                 let options;
-                // Check for explicit type
+                let match;
+                // Check for explicit type in action.yml
                 if (typeof def.type === 'string') {
                     inputType = def.type.toLowerCase();
                 }
-                // Parse description for type hints
+                // Parse description for example extraction only
                 const description = typeof def.description === 'string' ? def.description : '';
                 // Collect description for example extraction
                 if (description) {
                     descriptions.push(description);
                 }
-                if (description.toLowerCase().includes('boolean')) {
-                    inputType = 'boolean';
-                }
-                else if (description.toLowerCase().includes('number')) {
-                    inputType = 'number';
-                }
-                // Check for options/enum in description
-                // Match everything after "Options:" until we hit a period, semicolon, or "default:"
-                const optionsMatch = description.match(/(?:options?|choices?|valid values?):\s*([^.;]+?)(?:\.|;|,?\s*default:|\s*$)/i);
-                if (optionsMatch) {
-                    // Strip surrounding brackets if present (e.g., "[error, warning]" -> "error, warning")
-                    let optionsText = optionsMatch[1].trim();
-                    if (optionsText.startsWith('[') && optionsText.endsWith(']')) {
-                        optionsText = optionsText.slice(1, -1);
-                    }
-                    options = optionsText
-                        .split(/[,\s]+/)
-                        .map((s) => s.trim().replace(/^['"`]|['"`]$/g, ''))
-                        .filter((s) => s.length > 0);
+                // Override with schema definition if present
+                if (schemaDefinition?.inputs?.[inputName]) {
+                    const schemaInput = schemaDefinition.inputs[inputName];
+                    const resolvedType = resolveTypeDefinition(schemaInput, schemaDefinition.types || {});
+                    inputType = resolvedType.type;
+                    options = resolvedType.options;
+                    match = resolvedType.match;
                 }
                 inputs.set(inputName, {
                     required: def.required === true || def.required === 'true',
                     type: inputType,
                     options,
+                    match,
                 });
             }
         }
@@ -43706,6 +43843,186 @@ async function detectForkParent(repository, token) {
 }
 
 /**
+ * Normalize a value for validation
+ *
+ * This function applies the following transformations:
+ * - Remove leading/trailing whitespace
+ * - Unindent multiline values
+ * - Rejoin folded scalar (>) lines into a single value
+ * - Remove enclosing quotes ("..." or '...')
+ * - Remove trailing comments (# ...)
+ * - Collapse whitespace (including in literal expressions)
+ */
+function normalizeValue(value) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+    let str = String(value);
+    // Check if the value contains non-literal expressions
+    // If it does, return null to skip validation
+    if (containsNonLiteralExpression(str)) {
+        return null;
+    }
+    // Remove leading and trailing whitespace
+    str = str.trim();
+    // Remove enclosing quotes
+    str = removeEnclosingQuotes(str);
+    // Remove trailing comments
+    str = removeTrailingComment(str);
+    // Unindent multiline values
+    str = unindent(str);
+    // Re-join lines (for folded scalars, collapse to single line)
+    // This is already handled by YAML parser, but we normalize just in case
+    // Replace multiple newlines with single space and collapse multiple spaces
+    str = str.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+    return str;
+}
+/**
+ * Check if a value contains a GitHub Actions expression
+ */
+function containsExpression(value) {
+    return /\$\{\{.*?\}\}/.test(value);
+}
+/**
+ * Check if a value contains non-literal expressions
+ * Returns true if the value contains expressions that are not simple literals
+ */
+function containsNonLiteralExpression(value) {
+    // Check for expressions
+    const expressionRegex = /\$\{\{(.*?)\}\}/g;
+    let match;
+    while ((match = expressionRegex.exec(value)) !== null) {
+        const expression = match[1].trim();
+        // Check if it's a literal expression
+        // Literals include: strings (single quotes only), numbers (decimal, hex, octal, exponential), booleans, null, NaN, Infinity
+        // NOTE: GitHub Actions does NOT support double quotes in expressions
+        // Match single-quoted strings with escaped quotes support ('It''s open source!' where '' escapes to ')
+        const isSingleQuoted = /^'(?:[^']|'')*'$/.test(expression);
+        // Match numbers: supports negative, decimal, hex (0x), octal (0o), and exponential notation
+        // Examples: 711, -9.2, 0xff, 0o777, -2.99e-2, 1.5e10
+        const isNumber = /^[+-]?(?:0x[0-9a-fA-F]+|0o[0-7]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)$/.test(expression);
+        // Match booleans, null, NaN, and Infinity (case-sensitive as per runner implementation)
+        const isKeyword = /^(true|false|null|NaN|Infinity)$/.test(expression);
+        const isLiteral = isSingleQuoted || isNumber || isKeyword;
+        if (!isLiteral) {
+            // Non-literal expression found
+            return true;
+        }
+    }
+    return false;
+}
+/**
+ * Remove enclosing quotes from a string
+ */
+function removeEnclosingQuotes(str) {
+    // Remove double quotes
+    if (str.startsWith('"') && str.endsWith('"') && str.length >= 2) {
+        return str.slice(1, -1);
+    }
+    // Remove single quotes
+    if (str.startsWith("'") && str.endsWith("'") && str.length >= 2) {
+        return str.slice(1, -1);
+    }
+    return str;
+}
+/**
+ * Remove trailing comment from a value
+ * Handles: "value # this is a comment" -> "value"
+ */
+function removeTrailingComment(str) {
+    // Only remove comments that are preceded by whitespace
+    const commentMatch = str.match(/^(.*?)\s+#.*$/);
+    if (commentMatch) {
+        return commentMatch[1].trim();
+    }
+    return str;
+}
+/**
+ * Unindent a multiline string
+ */
+function unindent(str) {
+    const lines = str.split('\n');
+    // Find minimum indentation (ignoring empty lines)
+    let minIndent = Infinity;
+    for (const line of lines) {
+        if (line.trim().length === 0) {
+            continue;
+        }
+        const indent = line.match(/^\s*/)?.[0].length || 0;
+        minIndent = Math.min(minIndent, indent);
+    }
+    // If no content lines found, return as-is
+    if (minIndent === Infinity) {
+        return str;
+    }
+    // Remove minimum indentation from all lines
+    return lines
+        .map((line) => {
+        if (line.trim().length === 0) {
+            return '';
+        }
+        return line.slice(minIndent);
+    })
+        .join('\n');
+}
+/**
+ * Normalize a boolean value
+ * Supports truthy and falsy values from GitHub Actions
+ */
+function normalizeBoolean(value) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+    // If already a boolean, return it
+    if (typeof value === 'boolean') {
+        return value;
+    }
+    const str = normalizeValue(value);
+    if (str === null) {
+        return null;
+    }
+    const lower = str.toLowerCase();
+    // Truthy values
+    if (['true', 'yes', 'y', '1', 'on'].includes(lower)) {
+        return true;
+    }
+    // Falsy values
+    if (['false', 'no', 'n', '0', 'off', ''].includes(lower)) {
+        return false;
+    }
+    return null;
+}
+/**
+ * Normalize a number value
+ * Supports JSON number notations and coercions
+ */
+function normalizeNumber(value) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+    // If already a number, return it
+    if (typeof value === 'number') {
+        return value;
+    }
+    const str = normalizeValue(value);
+    if (str === null) {
+        return null;
+    }
+    // Try to parse as number
+    const num = Number(str);
+    if (isNaN(num)) {
+        return null;
+    }
+    return num;
+}
+/**
+ * Validate a value against a regex pattern
+ */
+function validateMatch(value, pattern) {
+    return pattern.test(value);
+}
+
+/**
  * Extract YAML code blocks from markdown content
  */
 function extractYamlCodeBlocks(markdownContent) {
@@ -43913,54 +44230,77 @@ function validateStep(step, schema, blockStartLine) {
                 });
                 continue;
             }
-            // Skip validation for expressions
-            const valueStr = String(inputValue);
-            if (containsExpression(valueStr)) {
+            // Normalize the value for validation
+            const normalizedValue = normalizeValue(inputValue);
+            // Skip validation for expressions or null (non-literal expressions)
+            if (normalizedValue === null || containsExpression(String(inputValue))) {
                 continue;
             }
             // Validate input type
             if (inputSchema.type) {
                 if (inputSchema.type === 'boolean') {
-                    // Boolean values can be: boolean (unquoted YAML: true/false) or string ('true'/'false')
-                    const isValidBoolean = typeof inputValue === 'boolean' ||
-                        (typeof inputValue === 'string' &&
-                            ['true', 'false'].includes(valueStr.toLowerCase()));
-                    if (!isValidBoolean) {
+                    const boolValue = normalizeBoolean(inputValue);
+                    if (boolValue === null) {
                         const line = step.withLines?.get(inputName) ||
                             blockStartLine + step.lineInBlock;
                         errors.push({
-                            message: `Input '${inputName}' for action '${step.uses}' expects a boolean value, but got '${valueStr}'`,
+                            message: `Input '${inputName}' for action '${step.uses}' expects a boolean value, but got '${normalizedValue}'`,
                             line,
                             column: 1,
                         });
                     }
                 }
                 else if (inputSchema.type === 'number') {
-                    // Number values can be: number (unquoted YAML: 42) or string ('42')
-                    const isValidNumber = typeof inputValue === 'number' ||
-                        (typeof inputValue === 'string' && !isNaN(Number(valueStr)));
-                    if (!isValidNumber) {
+                    const numValue = normalizeNumber(inputValue);
+                    if (numValue === null) {
                         const line = step.withLines?.get(inputName) ||
                             blockStartLine + step.lineInBlock;
                         errors.push({
-                            message: `Input '${inputName}' for action '${step.uses}' expects a number value, but got '${valueStr}'`,
+                            message: `Input '${inputName}' for action '${step.uses}' expects a number value, but got '${normalizedValue}'`,
                             line,
                             column: 1,
                         });
                     }
                 }
+                else if (inputSchema.type === 'choice' ||
+                    inputSchema.type === 'string') {
+                    // Validate match pattern for string type
+                    if (inputSchema.match &&
+                        !validateMatch(normalizedValue, inputSchema.match)) {
+                        const line = step.withLines?.get(inputName) ||
+                            blockStartLine + step.lineInBlock;
+                        errors.push({
+                            message: `Input '${inputName}' for action '${step.uses}' does not match required pattern: ${inputSchema.match}`,
+                            line,
+                            column: 1,
+                        });
+                    }
+                    // Validate options for choice type
+                    if (inputSchema.options && inputSchema.options.length > 0) {
+                        if (!inputSchema.options.includes(normalizedValue)) {
+                            const line = step.withLines?.get(inputName) ||
+                                blockStartLine + step.lineInBlock;
+                            errors.push({
+                                message: `Input '${inputName}' for action '${step.uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
+                                line,
+                                column: 1,
+                            });
+                        }
+                    }
+                }
             }
-            // Validate input options
-            if (inputSchema.options && inputSchema.options.length > 0) {
-                const valueStr = String(inputValue);
-                if (!containsExpression(valueStr) &&
-                    !inputSchema.options.includes(valueStr)) {
-                    const line = step.withLines?.get(inputName) || blockStartLine + step.lineInBlock;
-                    errors.push({
-                        message: `Input '${inputName}' for action '${step.uses}' expects one of [${inputSchema.options.join(', ')}], but got '${valueStr}'`,
-                        line,
-                        column: 1,
-                    });
+            else {
+                // No type specified, check options anyway if present (backward compatibility)
+                if (inputSchema.options && inputSchema.options.length > 0) {
+                    if (!inputSchema.options.includes(normalizedValue)) {
+                        const line = step.withLines?.get(inputName) ||
+                            blockStartLine + step.lineInBlock;
+                        errors.push({
+                            message: `Input '${inputName}' for action '${step.uses}' expects one of [${inputSchema.options.join(', ')}], but got '${normalizedValue}'`,
+                            line,
+                            column: 1,
+                        });
+                    }
                 }
             }
         }
@@ -44006,12 +44346,6 @@ function validateOutputReferences(blockText, steps, schemas, blockStartLine) {
         }
     }
     return errors;
-}
-/**
- * Check if a value contains a GitHub Actions expression
- */
-function containsExpression(value) {
-    return /\$\{\{.*?\}\}/.test(value);
 }
 /**
  * Remove quotes from a string
