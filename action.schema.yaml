@@ -8,9 +8,11 @@ inputs:
     type: string
 
   # Repository name in 'owner/repo' format
+  # GitHub repository names must start and end with alphanumeric characters
+  # Owner names can contain hyphens, repo names can contain hyphens, underscores, and periods
   repository:
     type: string
-    match: '^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$'
+    match: '^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?/[a-zA-Z0-9]([a-zA-Z0-9_.-]*[a-zA-Z0-9])?$'
 
   # Repository path - should be a valid file path
   repository-path:
