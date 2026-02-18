@@ -38912,22 +38912,21 @@ function validateSchemaDefinition(schema) {
 function validateTypeDefinition(def) {
     const typeDef = def;
     const type = String(typeDef.type || 'string').toLowerCase();
-    if (!['boolean', 'number', 'string', 'choice', 'any'].includes(type)) {
-        throw new Error(`Invalid type: ${type}. Must be one of: boolean, number, string, choice, any`);
-    }
     const result = {
         type: type,
     };
-    // Validate match for string type
+    const baseTypes = ['boolean', 'number', 'string', 'choice', 'any'];
+    const isBaseType = baseTypes.includes(type);
+    // Validate match for string type (only enforce for base types)
     if (typeDef.match && typeof typeDef.match === 'string') {
-        if (result.type !== 'string') {
+        if (isBaseType && result.type !== 'string') {
             throw new Error(`match can only be used with string type`);
         }
         result.match = typeDef.match;
     }
-    // Validate options for choice type
+    // Validate options for choice type (only enforce for base types)
     if (typeDef.options) {
-        if (result.type !== 'choice') {
+        if (isBaseType && result.type !== 'choice') {
             throw new Error(`options can only be used with choice type`);
         }
         if (Array.isArray(typeDef.options)) {
@@ -38963,8 +38962,9 @@ function validateTypeDefinition(def) {
             });
         }
     }
-    // Ensure choice type has options
-    if (result.type === 'choice' &&
+    // Ensure choice type has options (only enforce for base types)
+    if (isBaseType &&
+        result.type === 'choice' &&
         (!result.options || result.options.length === 0)) {
         throw new Error(`choice type requires options array`);
     }
@@ -38999,52 +38999,118 @@ function validateTypeDefinition(def) {
  * Resolve a type definition, handling custom type references
  */
 function resolveTypeDefinition(def, customTypes) {
-    // If it's a string, it's a reference to a custom type
+    let baseTypeDef;
+    let overrides = {};
+    // If it's a string, it's a direct reference to a custom type
     if (typeof def === 'string') {
         const customType = customTypes[def];
         if (!customType) {
             throw new Error(`Unknown custom type: ${def}`);
         }
-        def = customType;
+        baseTypeDef = customType;
     }
-    const resolved = {
-        type: def.type,
-    };
-    // Compile regex pattern if present
-    if (def.match) {
-        resolved.match = compileRegex(def.match);
+    else {
+        // Check if def.type is a custom type reference (not a base type)
+        const baseTypes = ['boolean', 'number', 'string', 'choice', 'any'];
+        if (!baseTypes.includes(def.type)) {
+            // def.type is a custom type reference
+            const customType = customTypes[def.type];
+            if (!customType) {
+                throw new Error(`Unknown custom type: ${def.type}`);
+            }
+            // Use the custom type as base, but allow overrides from def
+            baseTypeDef = customType;
+            overrides = {
+                match: def.match,
+                options: def.options,
+                separators: def.separators,
+                items: def.items,
+            };
+        }
+        else {
+            // def.type is a base type, use def as-is
+            baseTypeDef = def;
+        }
+    }
+    // Recursively resolve the base type if it's also a reference
+    let resolvedBase;
+    const baseTypes = ['boolean', 'number', 'string', 'choice', 'any'];
+    if (!baseTypes.includes(baseTypeDef.type)) {
+        // Base type is also a custom type reference, resolve it recursively
+        resolvedBase = resolveTypeDefinition(baseTypeDef.type, customTypes);
+    }
+    else {
+        // Base type is a base type, start with it
+        resolvedBase = {
+            type: baseTypeDef.type,
+        };
+    }
+    // Apply properties from baseTypeDef (after resolving the base type)
+    if (baseTypeDef.match) {
+        resolvedBase.match = compileRegex(baseTypeDef.match);
     }
     // Copy options if present, flattening alternatives into the main options array
-    if (def.options) {
-        resolved.options = [];
-        for (const opt of def.options) {
+    if (baseTypeDef.options) {
+        resolvedBase.options = [];
+        for (const opt of baseTypeDef.options) {
             if (typeof opt === 'string') {
-                resolved.options.push(opt);
+                resolvedBase.options.push(opt);
             }
             else {
                 // For object options, add the primary value
-                resolved.options.push(opt.value);
+                resolvedBase.options.push(opt.value);
                 // Add all alternatives as valid values
                 if (opt.alternatives) {
-                    resolved.options.push(...opt.alternatives);
+                    resolvedBase.options.push(...opt.alternatives);
                 }
             }
         }
     }
     // Normalize separators to array format
-    if (def.separators) {
-        if (typeof def.separators === 'string') {
-            resolved.separators = [def.separators];
+    if (baseTypeDef.separators) {
+        if (typeof baseTypeDef.separators === 'string') {
+            resolvedBase.separators = [baseTypeDef.separators];
         }
-        else if (Array.isArray(def.separators)) {
-            resolved.separators = [...def.separators];
+        else if (Array.isArray(baseTypeDef.separators)) {
+            resolvedBase.separators = [...baseTypeDef.separators];
         }
     }
     // Recursively resolve items if present
-    if (def.items) {
-        resolved.items = resolveTypeDefinition(def.items, customTypes);
+    if (baseTypeDef.items) {
+        resolvedBase.items = resolveTypeDefinition(baseTypeDef.items, customTypes);
     }
-    return resolved;
+    // Apply overrides (from the original def when it had a custom type in its type field)
+    if (overrides.match) {
+        resolvedBase.match = compileRegex(overrides.match);
+    }
+    if (overrides.options) {
+        resolvedBase.options = [];
+        for (const opt of overrides.options) {
+            if (typeof opt === 'string') {
+                resolvedBase.options.push(opt);
+            }
+            else {
+                resolvedBase.options.push(opt.value);
+                if (opt.alternatives) {
+                    resolvedBase.options.push(...opt.alternatives);
+                }
+            }
+        }
+    }
+    // Override separators if specified
+    if (overrides.separators !== undefined) {
+        if (typeof overrides.separators === 'string') {
+            resolvedBase.separators = [overrides.separators];
+        }
+        else if (Array.isArray(overrides.separators)) {
+            resolvedBase.separators = [...overrides.separators];
+        }
+    }
+    // Override items if specified
+    if (overrides.items) {
+        resolvedBase.items = resolveTypeDefinition(overrides.items, customTypes);
+    }
+    return resolvedBase;
 }
 /**
  * Compile a regex pattern from string notation
