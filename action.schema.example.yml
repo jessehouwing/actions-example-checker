@@ -19,6 +19,17 @@ types:
     type: string
     match: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
 
+  # Version pattern - supports basic semver and wildcards
+  version:
+    type: string
+    match: '^(v?\d+(\.\d+)?(\.\d+)?|v?\d+\.\*|v?\d+\.\d+\.\*|latest)$'
+
+  # Multiple versions with newline separator
+  versions:
+    type: string
+    separators: newline
+    match: '^(v?\d+(\.\d+)?(\.\d+)?|v?\d+\.\*|v?\d+\.\d+\.\*|latest)$'
+
 # Validate inputs with explicit types
 inputs:
   # Choice type - restricts to specific values (simple format)
@@ -31,6 +42,14 @@ inputs:
 
   # Choice type with descriptions and alternatives
   # Allows primary values (a, d) or their alternatives (b, c, e, f) or simple option (g)
+  # Alternatives support multiple formats:
+  #   - YAML array: alternatives:\n    - b\n    - c
+  #   - JSON/inline: alternatives: [b, c]
+  #   - Single value: alternatives: b
+  # Alternatives accept any scalar type (string, number, boolean, null) and convert to string:
+  #   - alternatives: true → ['true']
+  #   - alternatives: 123 → ['123']
+  #   - alternatives: [true, 1, enabled] → ['true', '1', 'enabled']
   with-options:
     type: choice
     options:
@@ -41,9 +60,7 @@ inputs:
           - c
       - value: d
         description: this does Y
-        alternatives:
-          - e
-          - f
+        alternatives: [e, f]  # Inline array syntax
       - g
 
   # Choice type with mixed simple and object options
@@ -63,9 +80,35 @@ inputs:
   api-url:
     type: url
 
-  # Another custom type reference
-  version:
+  # Another custom type reference (using semver type)
+  release-version:
     type: semver
+
+  # Type reference with added separators
+  # References 'version' type (single) but adds separators to make it multi-value
+  # Supports both comma-separated and newline-separated formats:
+  # Comma-separated: 'v1.0.0,v2.0.0,v3.0.0'
+  # Newline-separated: |
+  #   v1.0.0
+  #   v2.0.0
+  ignore-versions:
+    type: version
+    separators: ['newline', ',']
+
+  # Simple version reference (no separators, single value)
+  target-version:
+    type: version
+
+  # Using versions type with predefined separators
+  # Inherits 'newline' separator from the 'versions' type
+  allowed-versions:
+    type: versions
+
+  # Override separators from referenced type
+  # References 'versions' type but overrides its separator
+  csv-versions:
+    type: versions
+    separators: ","
 
   # Boolean type - accepts truthy/falsy values
   # Truthy: true, yes, y, 1, on

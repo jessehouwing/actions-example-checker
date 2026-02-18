@@ -98,9 +98,10 @@ export async function run(): Promise<void> {
         core.info(`  Alternative names: ${schema.alternativeNames.join(', ')}`)
       }
     } catch (error) {
-      core.warning(
+      core.setFailed(
         `Failed to load action schema from ${actionFile}: ${error instanceof Error ? error.message : String(error)}`
       )
+      return // Exit early on schema loading failure
     }
   }
 
