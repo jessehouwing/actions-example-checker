@@ -298,9 +298,15 @@ export function validateStep(
       }
 
       // Validate input type
-      if (inputSchema.type && typeof inputValue === 'string') {
+      if (inputSchema.type) {
         if (inputSchema.type === 'boolean') {
-          if (!['true', 'false'].includes(valueStr.toLowerCase())) {
+          // Boolean values can be: boolean (unquoted YAML: true/false) or string ('true'/'false')
+          const isValidBoolean =
+            typeof inputValue === 'boolean' ||
+            (typeof inputValue === 'string' &&
+              ['true', 'false'].includes(valueStr.toLowerCase()))
+
+          if (!isValidBoolean) {
             const line =
               step.withLines?.get(inputName) ||
               blockStartLine + step.lineInBlock
@@ -311,7 +317,12 @@ export function validateStep(
             })
           }
         } else if (inputSchema.type === 'number') {
-          if (isNaN(Number(valueStr))) {
+          // Number values can be: number (unquoted YAML: 42) or string ('42')
+          const isValidNumber =
+            typeof inputValue === 'number' ||
+            (typeof inputValue === 'string' && !isNaN(Number(valueStr)))
+
+          if (!isValidNumber) {
             const line =
               step.withLines?.get(inputName) ||
               blockStartLine + step.lineInBlock

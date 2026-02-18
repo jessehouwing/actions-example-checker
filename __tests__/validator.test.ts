@@ -219,6 +219,66 @@ describe('validateStep', () => {
     expect(errors).toHaveLength(0)
   })
 
+  it('should accept quoted boolean values in YAML', () => {
+    const schema: ActionSchema = {
+      actionReference: 'owner/repo',
+      alternativeNames: [],
+      inputs: new Map([
+        ['debug', { required: false, type: 'boolean' }],
+        ['verbose', { required: false, type: 'boolean' }],
+      ]),
+      outputs: new Set(),
+      sourceFile: 'action.yml',
+      descriptions: [],
+    }
+
+    // Test both single and double quoted values
+    const yaml1 = `
+- uses: owner/repo@v1
+  with:
+    debug: 'true'
+    verbose: 'false'
+`
+    const yaml2 = `
+- uses: owner/repo@v1
+  with:
+    debug: "true"
+    verbose: "false"
+`
+
+    const schemas = new Map([['owner/repo', schema]])
+
+    const steps1 = findReferencedSteps(yaml1, schemas)
+    const errors1 = validateStep(steps1[0], schema, 1)
+    expect(errors1).toHaveLength(0)
+
+    const steps2 = findReferencedSteps(yaml2, schemas)
+    const errors2 = validateStep(steps2[0], schema, 1)
+    expect(errors2).toHaveLength(0)
+  })
+
+  it('should accept unquoted boolean values in YAML', () => {
+    const schema: ActionSchema = {
+      actionReference: 'owner/repo',
+      alternativeNames: [],
+      inputs: new Map([['debug', { required: false, type: 'boolean' }]]),
+      outputs: new Set(),
+      sourceFile: 'action.yml',
+      descriptions: [],
+    }
+
+    const yaml = `
+- uses: owner/repo@v1
+  with:
+    debug: true
+`
+    const schemas = new Map([['owner/repo', schema]])
+    const steps = findReferencedSteps(yaml, schemas)
+    const errors = validateStep(steps[0], schema, 1)
+
+    expect(errors).toHaveLength(0)
+  })
+
   it('should validate number types', () => {
     const schema: ActionSchema = {
       actionReference: 'owner/repo',
@@ -264,6 +324,28 @@ describe('validateStep', () => {
     }
 
     const errors = validateStep(step, schema, 1)
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it('should accept unquoted number values in YAML', () => {
+    const schema: ActionSchema = {
+      actionReference: 'owner/repo',
+      alternativeNames: [],
+      inputs: new Map([['count', { required: false, type: 'number' }]]),
+      outputs: new Set(),
+      sourceFile: 'action.yml',
+      descriptions: [],
+    }
+
+    const yaml = `
+- uses: owner/repo@v1
+  with:
+    count: 42
+`
+    const schemas = new Map([['owner/repo', schema]])
+    const steps = findReferencedSteps(yaml, schemas)
+    const errors = validateStep(steps[0], schema, 1)
 
     expect(errors).toHaveLength(0)
   })
@@ -329,6 +411,77 @@ describe('validateStep', () => {
     }
 
     const errors = validateStep(step, schema, 1)
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it('should accept quoted option values in YAML', () => {
+    const schema: ActionSchema = {
+      actionReference: 'owner/repo',
+      alternativeNames: [],
+      inputs: new Map([
+        [
+          'environment',
+          {
+            required: true,
+            options: ['development', 'staging', 'production'],
+          },
+        ],
+      ]),
+      outputs: new Set(),
+      sourceFile: 'action.yml',
+      descriptions: [],
+    }
+
+    // Test both single and double quoted values
+    const yaml1 = `
+- uses: owner/repo@v1
+  with:
+    environment: 'production'
+`
+    const yaml2 = `
+- uses: owner/repo@v1
+  with:
+    environment: "staging"
+`
+
+    const schemas = new Map([['owner/repo', schema]])
+
+    const steps1 = findReferencedSteps(yaml1, schemas)
+    const errors1 = validateStep(steps1[0], schema, 1)
+    expect(errors1).toHaveLength(0)
+
+    const steps2 = findReferencedSteps(yaml2, schemas)
+    const errors2 = validateStep(steps2[0], schema, 1)
+    expect(errors2).toHaveLength(0)
+  })
+
+  it('should accept boolean option values', () => {
+    const schema: ActionSchema = {
+      actionReference: 'owner/repo',
+      alternativeNames: [],
+      inputs: new Map([
+        [
+          'enabled',
+          {
+            required: true,
+            options: ['true', 'false'],
+          },
+        ],
+      ]),
+      outputs: new Set(),
+      sourceFile: 'action.yml',
+      descriptions: [],
+    }
+
+    const yaml = `
+- uses: owner/repo@v1
+  with:
+    enabled: 'true'
+`
+    const schemas = new Map([['owner/repo', schema]])
+    const steps = findReferencedSteps(yaml, schemas)
+    const errors = validateStep(steps[0], schema, 1)
 
     expect(errors).toHaveLength(0)
   })
