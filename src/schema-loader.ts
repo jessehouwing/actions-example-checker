@@ -3,12 +3,21 @@ import path from 'node:path'
 import * as yaml from 'yaml'
 
 /**
+ * Choice option with optional description and alternatives
+ */
+export interface ChoiceOption {
+  value: string
+  description?: string
+  alternatives?: string[]
+}
+
+/**
  * Type definition for custom types and inputs/outputs
  */
 export interface TypeDefinition {
   type: 'boolean' | 'number' | 'string' | 'choice' | 'any'
   match?: string // regex pattern for string type
-  options?: string[] // valid options for choice type
+  options?: (string | ChoiceOption)[] // valid options for choice type - can be simple strings or objects with value, description, and alternatives
   separators?: string | string[] // separator(s) for multi-value inputs (e.g., ',', [',', ';'], 'newline')
   items?: TypeDefinition // validation for each item in multi-value inputs
 }
@@ -150,7 +159,44 @@ function validateTypeDefinition(def: unknown): TypeDefinition {
       throw new Error(`options can only be used with choice type`)
     }
     if (Array.isArray(typeDef.options)) {
-      result.options = typeDef.options.map(String)
+      result.options = typeDef.options.map((opt) => {
+        if (typeof opt === 'string') {
+          return opt
+        } else if (typeof opt === 'object' && opt !== null) {
+          // Validate ChoiceOption structure
+          const choiceOpt = opt as Record<string, unknown>
+          if (typeof choiceOpt.value !== 'string') {
+            throw new Error(`Choice option must have a 'value' string property`)
+          }
+          if (
+            choiceOpt.description !== undefined &&
+            typeof choiceOpt.description !== 'string'
+          ) {
+            throw new Error(
+              `Choice option 'description' must be a string if provided`
+            )
+          }
+          if (choiceOpt.alternatives !== undefined) {
+            if (
+              !Array.isArray(choiceOpt.alternatives) ||
+              !choiceOpt.alternatives.every((alt) => typeof alt === 'string')
+            ) {
+              throw new Error(
+                `Choice option 'alternatives' must be an array of strings if provided`
+              )
+            }
+          }
+          return {
+            value: choiceOpt.value,
+            description: choiceOpt.description as string | undefined,
+            alternatives: choiceOpt.alternatives as string[] | undefined,
+          } as ChoiceOption
+        } else {
+          throw new Error(
+            `Options must be strings or objects with value, description, and alternatives properties`
+          )
+        }
+      })
     }
   }
 
@@ -217,9 +263,21 @@ export function resolveTypeDefinition(
     resolved.match = compileRegex(def.match)
   }
 
-  // Copy options if present
+  // Copy options if present, flattening alternatives into the main options array
   if (def.options) {
-    resolved.options = [...def.options]
+    resolved.options = []
+    for (const opt of def.options) {
+      if (typeof opt === 'string') {
+        resolved.options.push(opt)
+      } else {
+        // For object options, add the primary value
+        resolved.options.push(opt.value)
+        // Add all alternatives as valid values
+        if (opt.alternatives) {
+          resolved.options.push(...opt.alternatives)
+        }
+      }
+    }
   }
 
   // Normalize separators to array format
