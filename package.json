@@ -30,7 +30,7 @@
     "coverage": "npx make-coverage-badge --output-path ./badges/coverage.svg",
     "format:write": "npx prettier --write .",
     "format:check": "npx prettier --check .",
-    "lint": "npx eslint .",
+    "lint": "npx eslint . && npx tsc --noEmit",
     "package": "npx rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
     "package:watch": "npm run package -- --watch",
     "test": "npx --node-options=--experimental-vm-modules jest",
@@ -65,7 +65,7 @@
     "ts-jest": "^29.4.6",
     "ts-jest-resolver": "^2.0.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.32.1"
+    "typescript-eslint": "^8.56.0"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "^4.57.1"
