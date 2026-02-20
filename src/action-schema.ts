@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import * as yaml from 'yaml'
+import * as core from '@actions/core'
 import { ActionSchema } from './index.js'
 import {
   loadActionSchemaDefinition,
@@ -53,6 +54,72 @@ export async function loadActionSchema(
 
   // Load optional schema definition
   const schemaDefinition = await loadActionSchemaDefinition(actionFilePath)
+
+  // Validate schema against action.yml if schema definition exists
+  if (schemaDefinition) {
+    const actionInputNames = new Set<string>()
+    const actionOutputNames = new Set<string>()
+
+    // Collect input names from action.yml
+    if (action.inputs && typeof action.inputs === 'object') {
+      for (const inputName of Object.keys(action.inputs)) {
+        actionInputNames.add(inputName)
+      }
+    }
+
+    // Collect output names from action.yml
+    if (action.outputs && typeof action.outputs === 'object') {
+      for (const outputName of Object.keys(action.outputs)) {
+        actionOutputNames.add(outputName)
+      }
+    }
+
+    // Check that all inputs in schema exist in action.yml (ERROR)
+    if (schemaDefinition.inputs) {
+      for (const inputName of Object.keys(schemaDefinition.inputs)) {
+        if (!actionInputNames.has(inputName)) {
+          throw new Error(
+            `Schema defines input '${inputName}' that does not exist in action.yml`
+          )
+        }
+      }
+    }
+
+    // Check that all outputs in schema exist in action.yml (ERROR)
+    if (schemaDefinition.outputs) {
+      for (const outputName of Object.keys(schemaDefinition.outputs)) {
+        if (!actionOutputNames.has(outputName)) {
+          throw new Error(
+            `Schema defines output '${outputName}' that does not exist in action.yml`
+          )
+        }
+      }
+    }
+
+    // Check that all inputs in action.yml are in schema (WARNING)
+    for (const inputName of actionInputNames) {
+      if (!schemaDefinition.inputs || !schemaDefinition.inputs[inputName]) {
+        core.warning(
+          `Input '${inputName}' in action.yml is not defined in schema (consider adding it for validation)`,
+          {
+            file: path.relative(repositoryPath, actionFilePath),
+          }
+        )
+      }
+    }
+
+    // Check that all outputs in action.yml are in schema (WARNING)
+    for (const outputName of actionOutputNames) {
+      if (!schemaDefinition.outputs || !schemaDefinition.outputs[outputName]) {
+        core.warning(
+          `Output '${outputName}' in action.yml is not defined in schema (consider adding it for validation)`,
+          {
+            file: path.relative(repositoryPath, actionFilePath),
+          }
+        )
+      }
+    }
+  }
 
   // Parse inputs
   const inputs = new Map<
