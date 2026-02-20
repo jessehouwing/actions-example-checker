@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals'
 import { promises as fs } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 // Create mock functions for @actions/core
@@ -23,7 +24,7 @@ jest.unstable_mockModule('@actions/core', () => ({
 const { loadActionSchema } = await import('../src/action-schema.js')
 
 describe('Schema Validation', () => {
-  const testDir = '/tmp/schema-validation-test'
+  const testDir = path.join(tmpdir(), 'schema-validation-test')
 
   beforeEach(async () => {
     // Create test directory
@@ -353,7 +354,7 @@ description: A test action
       expect(mockWarning).not.toHaveBeenCalled()
     })
 
-    it('should succeed when schema has only inputs section', async () => {
+    it('should warn when schema has only inputs section and action.yml has undocumented outputs', async () => {
       const actionYml = `
 name: Test Action
 inputs:
