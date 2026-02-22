@@ -1,0 +1,31 @@
+name: Check SemVer
+
+on:
+  push:
+    branches: ['main']
+    tags:
+      - '*'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check-semver:
+    permissions:
+      contents: write
+
+    concurrency:
+      group: '${{ github.workflow }}'
+      cancel-in-progress: true
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: jessehouwing/actions-semver-checker@v2
+        with:
+          check-minor-version: error
+          check-release-immutability: false
+          ignore-preview-releases: true
+          check-releases: error
+          token: ${{ secrets.GITHUB_TOKEN }}
+          auto-fix: true
