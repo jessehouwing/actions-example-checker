@@ -24,7 +24,7 @@ jobs:
       - uses: jessehouwing/actions-semver-checker@v2
         with:
           check-minor-version: error
-          check-release-immutability: false
+          check-release-immutability: true
           ignore-preview-releases: true
           check-releases: error
           token: ${{ secrets.GITHUB_TOKEN }}
