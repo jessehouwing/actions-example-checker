@@ -1,4 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals'
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  jest,
+} from '@jest/globals'
 import { promises as fs } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -127,7 +134,9 @@ inputs:
 
       await expect(
         loadActionSchema(actionPath, testDir, 'owner/repo')
-      ).rejects.toThrow(/Schema defines input .* that does not exist in action.yml/)
+      ).rejects.toThrow(
+        /Schema defines input .* that does not exist in action.yml/
+      )
     })
   })
 
@@ -164,7 +173,9 @@ inputs:
 
       // Check for warning call
       expect(mockWarning).toHaveBeenCalledWith(
-        expect.stringContaining("Input 'undocumented-input' in action.yml is not defined in schema"),
+        expect.stringContaining(
+          "Input 'undocumented-input' in action.yml is not defined in schema"
+        ),
         expect.objectContaining({ file: expect.stringContaining('action.yml') })
       )
     })
@@ -199,7 +210,9 @@ outputs:
 
       // Check for warning call
       expect(mockWarning).toHaveBeenCalledWith(
-        expect.stringContaining("Output 'undocumented-output' in action.yml is not defined in schema"),
+        expect.stringContaining(
+          "Output 'undocumented-output' in action.yml is not defined in schema"
+        ),
         expect.objectContaining({ file: expect.stringContaining('action.yml') })
       )
     })

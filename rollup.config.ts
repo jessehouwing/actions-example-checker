@@ -4,6 +4,10 @@ import typescript from '@rollup/plugin-typescript'
 
 export default {
   input: 'src/main.ts',
+  onwarn(warning, warn) {
+    if (warning.code === 'THIS_IS_UNDEFINED') return
+    warn(warning)
+  },
   output: {
     file: 'dist/index.js',
     format: 'es',
