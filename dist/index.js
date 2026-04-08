@@ -39344,6 +39344,9 @@ function compileRegex(pattern) {
     return new RegExp(pattern);
 }
 
+function toRepositoryPath(filePath) {
+    return filePath.split(path$1.sep).join('/');
+}
 /**
  * Load and parse an action.yml file
  */
@@ -39354,7 +39357,7 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
         throw new Error('Invalid action.yml format');
     }
     // Determine the action reference based on file location
-    const relativeDir = path$1.dirname(path$1.relative(repositoryPath, actionFilePath));
+    const relativeDir = toRepositoryPath(path$1.dirname(path$1.relative(repositoryPath, actionFilePath)));
     const actionPath = relativeDir === '.' ? '' : relativeDir;
     // Build full action reference: owner/repo or owner/repo/path
     const actionReference = actionPath
@@ -39412,7 +39415,7 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
         for (const inputName of actionInputNames) {
             if (!schemaDefinition.inputs || !schemaDefinition.inputs[inputName]) {
                 warning(`Input '${inputName}' in action.yml is not defined in schema (consider adding it for validation)`, {
-                    file: path$1.relative(repositoryPath, actionFilePath),
+                    file: toRepositoryPath(path$1.relative(repositoryPath, actionFilePath)),
                 });
             }
         }
@@ -39420,7 +39423,7 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
         for (const outputName of actionOutputNames) {
             if (!schemaDefinition.outputs || !schemaDefinition.outputs[outputName]) {
                 warning(`Output '${outputName}' in action.yml is not defined in schema (consider adding it for validation)`, {
-                    file: path$1.relative(repositoryPath, actionFilePath),
+                    file: toRepositoryPath(path$1.relative(repositoryPath, actionFilePath)),
                 });
             }
         }
@@ -39486,7 +39489,7 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
         alternativeNames,
         inputs,
         outputs,
-        sourceFile: path$1.relative(repositoryPath, actionFilePath),
+        sourceFile: toRepositoryPath(path$1.relative(repositoryPath, actionFilePath)),
         descriptions,
     };
 }

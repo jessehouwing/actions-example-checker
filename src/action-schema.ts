@@ -106,7 +106,9 @@ export async function loadActionSchema(
         core.warning(
           `Input '${inputName}' in action.yml is not defined in schema (consider adding it for validation)`,
           {
-            file: toRepositoryPath(path.relative(repositoryPath, actionFilePath)),
+            file: toRepositoryPath(
+              path.relative(repositoryPath, actionFilePath)
+            ),
           }
         )
       }
@@ -118,7 +120,9 @@ export async function loadActionSchema(
         core.warning(
           `Output '${outputName}' in action.yml is not defined in schema (consider adding it for validation)`,
           {
-            file: toRepositoryPath(path.relative(repositoryPath, actionFilePath)),
+            file: toRepositoryPath(
+              path.relative(repositoryPath, actionFilePath)
+            ),
           }
         )
       }
