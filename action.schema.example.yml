@@ -60,7 +60,7 @@ inputs:
           - c
       - value: d
         description: this does Y
-        alternatives: [e, f] # Inline array syntax
+        alternatives: [e, f]  # Inline array syntax
       - g
 
   # Choice type with mixed simple and object options
