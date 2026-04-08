@@ -101,3 +101,6 @@ __tests__/runner/*
 .idea
 *.code-workspace
 /.vs
+
+# Python environment
+.venv/
