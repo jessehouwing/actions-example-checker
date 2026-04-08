@@ -36,9 +36,9 @@ inputs:
   environment:
     type: choice
     options:
-    - development
-    - staging
-    - production
+      - development
+      - staging
+      - production
 
   # Choice type with descriptions and alternatives
   # Allows primary values (a, d) or their alternatives (b, c, e, f) or simple option (g)
@@ -53,28 +53,28 @@ inputs:
   with-options:
     type: choice
     options:
-    - value: a
-      description: this does X
-      alternatives:
-      - b
-      - c
-    - value: d
-      description: this does Y
-      alternatives: [ e, f ] # Inline array syntax
-    - g
+      - value: a
+        description: this does X
+        alternatives:
+          - b
+          - c
+      - value: d
+        description: this does Y
+        alternatives: [e, f] # Inline array syntax
+      - g
 
   # Choice type with mixed simple and object options
   # This demonstrates that you can mix simple strings with object format
   log-format:
     type: choice
     options:
-    - json
-    - value: text
-      description: Plain text format
-      alternatives:
-      - plain
-      - simple
-    - xml
+      - json
+      - value: text
+        description: Plain text format
+        alternatives:
+          - plain
+          - simple
+      - xml
 
   # Reference to custom type
   api-url:
@@ -93,7 +93,7 @@ inputs:
   #   v2.0.0
   ignore-versions:
     type: version
-    separators: [ 'newline', ',' ]
+    separators: ['newline', ',']
 
   # Simple version reference (no separators, single value)
   target-version:
@@ -145,7 +145,7 @@ inputs:
   # Values can be separated by comma, semicolon, or pipe
   mixed-separators:
     type: string
-    separators: [ ',', ';', '|' ]
+    separators: [',', ';', '|']
     items:
       type: string
 
@@ -157,9 +157,9 @@ inputs:
     items:
       type: choice
       options:
-      - development
-      - staging
-      - production
+        - development
+        - staging
+        - production
 
   # Multi-value with numbers
   ports:
@@ -172,7 +172,7 @@ inputs:
   # Split by newline first, then by comma within each line
   combined-separators:
     type: string
-    separators: [ 'newline', ',' ]
+    separators: ['newline', ',']
     items:
       type: string
       match: '^[a-z0-9-]+$'
