@@ -8,6 +8,10 @@ import {
   resolveTypeDefinition,
 } from './schema-loader.js'
 
+function toRepositoryPath(filePath: string): string {
+  return filePath.split(path.sep).join('/')
+}
+
 /**
  * Load and parse an action.yml file
  */
@@ -25,8 +29,8 @@ export async function loadActionSchema(
   }
 
   // Determine the action reference based on file location
-  const relativeDir = path.dirname(
-    path.relative(repositoryPath, actionFilePath)
+  const relativeDir = toRepositoryPath(
+    path.dirname(path.relative(repositoryPath, actionFilePath))
   )
   const actionPath = relativeDir === '.' ? '' : relativeDir
 
@@ -102,7 +106,9 @@ export async function loadActionSchema(
         core.warning(
           `Input '${inputName}' in action.yml is not defined in schema (consider adding it for validation)`,
           {
-            file: path.relative(repositoryPath, actionFilePath),
+            file: toRepositoryPath(
+              path.relative(repositoryPath, actionFilePath)
+            ),
           }
         )
       }
@@ -114,7 +120,9 @@ export async function loadActionSchema(
         core.warning(
           `Output '${outputName}' in action.yml is not defined in schema (consider adding it for validation)`,
           {
-            file: path.relative(repositoryPath, actionFilePath),
+            file: toRepositoryPath(
+              path.relative(repositoryPath, actionFilePath)
+            ),
           }
         )
       }
@@ -214,7 +222,7 @@ export async function loadActionSchema(
     alternativeNames,
     inputs,
     outputs,
-    sourceFile: path.relative(repositoryPath, actionFilePath),
+    sourceFile: toRepositoryPath(path.relative(repositoryPath, actionFilePath)),
     descriptions,
   }
 }

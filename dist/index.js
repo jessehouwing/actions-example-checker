@@ -28648,7 +28648,7 @@ function requireBraceExpansion () {
 	    var y = numeric(n[1]);
 	    var width = Math.max(n[0].length, n[1].length);
 	    var incr = n.length == 3
-	      ? Math.abs(numeric(n[2]))
+	      ? Math.max(Math.abs(numeric(n[2])), 1)
 	      : 1;
 	    var test = lte;
 	    var reverse = y < x;
@@ -32054,6 +32054,7 @@ function requireStringify () {
 	        nullStr: 'null',
 	        simpleKeys: false,
 	        singleQuote: null,
+	        trailingComma: false,
 	        trueStr: 'true',
 	        verifyAliasOrder: true
 	    }, doc.schema.toStringOptions, options);
@@ -32666,12 +32667,22 @@ function requireStringifyCollection () {
 	        if (comment)
 	            reqNewline = true;
 	        let str = stringify.stringify(item, itemCtx, () => (comment = null));
-	        if (i < items.length - 1)
+	        reqNewline || (reqNewline = lines.length > linesAtValue || str.includes('\n'));
+	        if (i < items.length - 1) {
 	            str += ',';
+	        }
+	        else if (ctx.options.trailingComma) {
+	            if (ctx.options.lineWidth > 0) {
+	                reqNewline || (reqNewline = lines.reduce((sum, line) => sum + line.length + 2, 2) +
+	                    (str.length + 2) >
+	                    ctx.options.lineWidth);
+	            }
+	            if (reqNewline) {
+	                str += ',';
+	            }
+	        }
 	        if (comment)
 	            str += stringifyComment.lineComment(str, itemIndent, commentString(comment));
-	        if (!reqNewline && (lines.length > linesAtValue || str.includes('\n')))
-	            reqNewline = true;
 	        lines.push(str);
 	        linesAtValue = lines.length;
 	    }
@@ -36162,19 +36173,26 @@ function requireComposeNode () {
 	        case 'block-map':
 	        case 'block-seq':
 	        case 'flow-collection':
-	            node = composeCollection.composeCollection(CN, ctx, token, props, onError);
-	            if (anchor)
-	                node.anchor = anchor.source.substring(1);
+	            try {
+	                node = composeCollection.composeCollection(CN, ctx, token, props, onError);
+	                if (anchor)
+	                    node.anchor = anchor.source.substring(1);
+	            }
+	            catch (error) {
+	                // Almost certainly here due to a stack overflow
+	                const message = error instanceof Error ? error.message : String(error);
+	                onError(token, 'RESOURCE_EXHAUSTION', message);
+	            }
 	            break;
 	        default: {
 	            const message = token.type === 'error'
 	                ? token.message
 	                : `Unsupported token (type: ${token.type})`;
 	            onError(token, 'UNEXPECTED_TOKEN', message);
-	            node = composeEmptyNode(ctx, token.offset, undefined, null, props, onError);
 	            isSrcToken = false;
 	        }
 	    }
+	    node ?? (node = composeEmptyNode(ctx, token.offset, undefined, null, props, onError));
 	    if (anchor && node.anchor === '')
 	        onError(anchor, 'BAD_ALIAS', 'Anchor cannot be an empty string');
 	    if (atKey &&
@@ -39326,6 +39344,9 @@ function compileRegex(pattern) {
     return new RegExp(pattern);
 }
 
+function toRepositoryPath(filePath) {
+    return filePath.split(path$1.sep).join('/');
+}
 /**
  * Load and parse an action.yml file
  */
@@ -39336,7 +39357,7 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
         throw new Error('Invalid action.yml format');
     }
     // Determine the action reference based on file location
-    const relativeDir = path$1.dirname(path$1.relative(repositoryPath, actionFilePath));
+    const relativeDir = toRepositoryPath(path$1.dirname(path$1.relative(repositoryPath, actionFilePath)));
     const actionPath = relativeDir === '.' ? '' : relativeDir;
     // Build full action reference: owner/repo or owner/repo/path
     const actionReference = actionPath
@@ -39394,7 +39415,7 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
         for (const inputName of actionInputNames) {
             if (!schemaDefinition.inputs || !schemaDefinition.inputs[inputName]) {
                 warning(`Input '${inputName}' in action.yml is not defined in schema (consider adding it for validation)`, {
-                    file: path$1.relative(repositoryPath, actionFilePath),
+                    file: toRepositoryPath(path$1.relative(repositoryPath, actionFilePath)),
                 });
             }
         }
@@ -39402,7 +39423,7 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
         for (const outputName of actionOutputNames) {
             if (!schemaDefinition.outputs || !schemaDefinition.outputs[outputName]) {
                 warning(`Output '${outputName}' in action.yml is not defined in schema (consider adding it for validation)`, {
-                    file: path$1.relative(repositoryPath, actionFilePath),
+                    file: toRepositoryPath(path$1.relative(repositoryPath, actionFilePath)),
                 });
             }
         }
@@ -39468,7 +39489,7 @@ async function loadActionSchema(actionFilePath, repositoryPath, repository, pare
         alternativeNames,
         inputs,
         outputs,
-        sourceFile: path$1.relative(repositoryPath, actionFilePath),
+        sourceFile: toRepositoryPath(path$1.relative(repositoryPath, actionFilePath)),
         descriptions,
     };
 }
