@@ -444,7 +444,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: jessehouwing/actions-example-checker@v1
         with:
-          version: ${{ github.ref_name }}   # e.g. v1.2.3
+          version: ${{ github.ref_name }} # e.g. v1.2.3
 ```
 
 To also accept the major (`v1`) and minor (`v1.2`) aliases that many actions publish, you need to extract them with a prior step because GitHub Actions expression functions cannot split or substring strings. Choose the shell that fits your runner:
@@ -502,14 +502,14 @@ For monorepo with multiple actions:
 
 ## Inputs
 
-| Input             | Description                                                                      | Required | Default                   |
-| ----------------- | -------------------------------------------------------------------------------- | -------- | ------------------------- |
-| `token`           | GitHub token for API access to check fork relationships (enables fork detection) | No       | `${{ github.token }}`     |
-| `repository`      | Repository name in 'owner/repo' format (auto-detected if not provided)           | No       | Auto-detected             |
-| `repository-path` | Path to the repository root (defaults to current directory)                      | No       | `.`                       |
-| `action-pattern`  | Glob pattern to find action files                                                | No       | `{**/,}action.{yml,yaml}` |
-| `docs-pattern`    | Glob pattern to find documentation files                                         | No       | `**/*.md`                 |
-| `version`         | Comma/newline-separated list of allowed versions for action references           | No       | *(version checking skipped)* |
+| Input             | Description                                                                      | Required | Default                      |
+| ----------------- | -------------------------------------------------------------------------------- | -------- | ---------------------------- |
+| `token`           | GitHub token for API access to check fork relationships (enables fork detection) | No       | `${{ github.token }}`        |
+| `repository`      | Repository name in 'owner/repo' format (auto-detected if not provided)           | No       | Auto-detected                |
+| `repository-path` | Path to the repository root (defaults to current directory)                      | No       | `.`                          |
+| `action-pattern`  | Glob pattern to find action files                                                | No       | `{**/,}action.{yml,yaml}`    |
+| `docs-pattern`    | Glob pattern to find documentation files                                         | No       | `**/*.md`                    |
+| `version`         | Comma/newline-separated list of allowed versions for action references           | No       | _(version checking skipped)_ |
 
 ## Outputs
 

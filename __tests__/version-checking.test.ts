@@ -88,11 +88,7 @@ describe('validateActionVersion', () => {
 
   it('should return an error when version is not in the list', () => {
     const step = makeStep('owner/repo@v0.9')
-    const errors = validateActionVersion(
-      step,
-      ['v1', 'v1.2', 'v1.2.4'],
-      1
-    )
+    const errors = validateActionVersion(step, ['v1', 'v1.2', 'v1.2.4'], 1)
     expect(errors).toHaveLength(1)
     expect(errors[0].message).toContain("uses version 'v0.9'")
     expect(errors[0].message).toContain('[v1, v1.2, v1.2.4]')
