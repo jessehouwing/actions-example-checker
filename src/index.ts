@@ -78,16 +78,6 @@ export async function run(): Promise<void> {
       'No version specified. Version checking is skipped. ' +
         'Set the `version` input to validate that examples use the correct version.'
     )
-  } else if (versionInput.trim().toLowerCase() === 'auto') {
-    const refName = process.env.GITHUB_REF_NAME || ''
-    if (refName) {
-      allowedVersions = [refName]
-      core.info(`Auto-detected version from GITHUB_REF_NAME: ${refName}`)
-    } else {
-      core.warning(
-        'Auto version detection failed: GITHUB_REF_NAME environment variable is not set'
-      )
-    }
   } else {
     allowedVersions = parseVersions(versionInput)
     core.info(`Checking action versions against: ${allowedVersions.join(', ')}`)

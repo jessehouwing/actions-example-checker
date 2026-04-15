@@ -17,9 +17,8 @@ inputs:
     description: >
       One or more versions that action references in examples must use.
       Accepts comma and/or newline-separated version strings (e.g. "v1, v1.2,
-      v1.2.3"). Use "auto" to detect the version automatically from the
-      GITHUB_REF_NAME environment variable. When not provided, version checking
-      is skipped and a warning is emitted.
+      v1.2.3"). When not provided, version checking is skipped and a warning is
+      emitted.
     required: false
   repository:
     description: >
