@@ -27,8 +27,10 @@ jobs:
 
       - name: Extract version aliases
         id: semver
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          full="${{ github.ref_name }}"               # e.g. v1.2.3
+          full="$REF_NAME"                            # e.g. v1.2.3
           echo "minor=${full%.*}"  >> "$GITHUB_OUTPUT"  # v1.2
           echo "major=${full%%.*}" >> "$GITHUB_OUTPUT"  # v1
 
@@ -65,8 +67,10 @@ jobs:
       - name: Extract version aliases
         id: semver
         shell: pwsh
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          $full  = "${{ github.ref_name }}"      # e.g. v1.2.3
+          $full  = $env:REF_NAME              # e.g. v1.2.3
           $parts = $full -split '\.'
           $minor = "$($parts[0]).$($parts[1])"   # v1.2
           $major = $parts[0]                     # v1
@@ -106,8 +110,10 @@ jobs:
 
       - name: Extract version aliases
         id: semver
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          full="${{ github.ref_name }}"
+          full="$REF_NAME"
           echo "minor=${full%.*}"  >> "$GITHUB_OUTPUT"
           echo "major=${full%%.*}" >> "$GITHUB_OUTPUT"
 
@@ -191,8 +197,9 @@ jobs:
         id: version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          latest=$(gh api repos/${{ github.repository }}/tags \
+          latest=$(gh api "repos/$REPOSITORY/tags" \
             --jq '.[] | select(.name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")) | .name' \
             | sort -V | tail -n1)
           echo "tag=$latest" >> "$GITHUB_OUTPUT"
