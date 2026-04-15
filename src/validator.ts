@@ -286,12 +286,21 @@ export function validateActionVersion(
   }
 
   // Extract version from uses string (e.g., "owner/repo@v1.2.3" -> "v1.2.3")
-  const atIndex = step.uses.lastIndexOf('@')
-  if (atIndex === -1) {
-    return []
-  }
+  // Use the known action reference prefix when available so refs containing '@'
+  // (for example, "owner/repo@v1@beta") are preserved correctly.
+  const actionPrefix = `${step.actionReference}@`
+  let version: string
 
-  const version = step.uses.substring(atIndex + 1)
+  if (step.uses.startsWith(actionPrefix)) {
+    version = step.uses.substring(actionPrefix.length)
+  } else {
+    const atIndex = step.uses.indexOf('@')
+    if (atIndex === -1) {
+      return []
+    }
+
+    version = step.uses.substring(atIndex + 1)
+  }
   const line = blockStartLine + step.lineInBlock - 1
 
   if (!allowedVersions.includes(version)) {
