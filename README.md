@@ -453,8 +453,10 @@ To also accept the major (`v1`) and minor (`v1.2`) aliases that many actions pub
 
 ```yaml
 - id: semver
+  env:
+    REF_NAME: ${{ github.ref_name }}
   run: |
-    full="${{ github.ref_name }}"          # v1.2.3
+    full="$REF_NAME"                      # v1.2.3
     echo "minor=${full%.*}"  >> "$GITHUB_OUTPUT"   # v1.2
     echo "major=${full%%.*}" >> "$GITHUB_OUTPUT"   # v1
 
@@ -471,8 +473,10 @@ To also accept the major (`v1`) and minor (`v1.2`) aliases that many actions pub
 ```yaml
 - id: semver
   shell: pwsh
+  env:
+    REF_NAME: ${{ github.ref_name }}
   run: |
-    $full  = "${{ github.ref_name }}"     # v1.2.3
+    $full  = $env:REF_NAME                 # v1.2.3
     $parts = $full -split '\.'
     $minor = "$($parts[0]).$($parts[1])"  # v1.2
     $major = $parts[0]                    # v1
