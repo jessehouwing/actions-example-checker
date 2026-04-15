@@ -139,4 +139,37 @@ describe('validateActionVersion', () => {
     const errors = validateActionVersion(step, ['v1'], 1)
     expect(errors).toHaveLength(0)
   })
+
+  it('should not match v1.2 when version is v1.2.4 (no prefix matching)', () => {
+    const step = makeStep('owner/repo@v1.2.4')
+    const errors = validateActionVersion(step, ['v1.2'], 1)
+    expect(errors).toHaveLength(1)
+    expect(errors[0].message).toContain("uses version 'v1.2.4'")
+  })
+
+  it('should not match v1 when version is v1.2.4 (no prefix matching)', () => {
+    const step = makeStep('owner/repo@v1.2.4')
+    const errors = validateActionVersion(step, ['v1'], 1)
+    expect(errors).toHaveLength(1)
+    expect(errors[0].message).toContain("uses version 'v1.2.4'")
+  })
+
+  it('should not match v1.2.4 when version is v1.2 (no prefix matching in reverse)', () => {
+    const step = makeStep('owner/repo@v1.2')
+    const errors = validateActionVersion(step, ['v1.2.4'], 1)
+    expect(errors).toHaveLength(1)
+    expect(errors[0].message).toContain("uses version 'v1.2'")
+  })
+
+  it('should pass when all of major, minor, and patch are in the allowed list', () => {
+    const step = makeStep('owner/repo@v1.2.4')
+    const errors = validateActionVersion(step, ['v1', 'v1.2', 'v1.2.4'], 1)
+    expect(errors).toHaveLength(0)
+  })
+
+  it('should pass when only the exact patch version is in the allowed list', () => {
+    const step = makeStep('owner/repo@v1.2.4')
+    const errors = validateActionVersion(step, ['v1.2.4'], 1)
+    expect(errors).toHaveLength(0)
+  })
 })

@@ -99,6 +99,23 @@ A GitHub Action that validates examples in documentation against your action's s
     #
     # Default: **/*.md
     docs-pattern: ''
+
+    # One or more versions that action references in examples must use.
+    # Accepts comma and/or newline-separated version strings.
+    # When not provided, version checking is skipped and a warning is emitted.
+    #
+    # Examples:
+    # - 'v1'
+    # - 'v1, v1.2, v1.2.3'
+    # - |
+    #     v1
+    #     v1.2
+    #     v1.2.3
+    #
+    # Tip: pass `${{ github.ref_name }}` to validate against the current tag.
+    # To also allow major/minor aliases you need a prior step – see the
+    # "Version Checking" section below.
+    version: ''
 ```
 
 <!-- end usage -->
@@ -409,6 +426,69 @@ For forked repositories, enable automatic parent detection:
     token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+#### Version Checking
+
+Use the `version` input to ensure all examples in your documentation pin to the expected release version(s). Version matching is **exact**: `v1.2` does **not** match `v1.2.4`.
+
+The simplest form passes the current tag directly:
+
+```yaml
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jessehouwing/actions-example-checker@v1
+        with:
+          version: ${{ github.ref_name }}   # e.g. v1.2.3
+```
+
+To also accept the major (`v1`) and minor (`v1.2`) aliases that many actions publish, you need to extract them with a prior step because GitHub Actions expression functions cannot split or substring strings. Choose the shell that fits your runner:
+
+**Bash (ubuntu/macos runners)**
+
+```yaml
+- id: semver
+  run: |
+    full="${{ github.ref_name }}"          # v1.2.3
+    echo "minor=${full%.*}"  >> "$GITHUB_OUTPUT"   # v1.2
+    echo "major=${full%%.*}" >> "$GITHUB_OUTPUT"   # v1
+
+- uses: jessehouwing/actions-example-checker@v1
+  with:
+    version: |
+      ${{ github.ref_name }}
+      ${{ steps.semver.outputs.minor }}
+      ${{ steps.semver.outputs.major }}
+```
+
+**PowerShell (windows runners)**
+
+```yaml
+- id: semver
+  shell: pwsh
+  run: |
+    $full  = "${{ github.ref_name }}"     # v1.2.3
+    $parts = $full -split '\.'
+    $minor = "$($parts[0]).$($parts[1])"  # v1.2
+    $major = $parts[0]                    # v1
+    "minor=$minor" >> $Env:GITHUB_OUTPUT
+    "major=$major" >> $Env:GITHUB_OUTPUT
+
+- uses: jessehouwing/actions-example-checker@v1
+  with:
+    version: |
+      ${{ github.ref_name }}
+      ${{ steps.semver.outputs.minor }}
+      ${{ steps.semver.outputs.major }}
+```
+
+For more detailed examples see [`docs/extract-version-from-ref.md`](docs/extract-version-from-ref.md).
+
 #### Validate Multiple Actions
 
 For monorepo with multiple actions:
@@ -429,6 +509,7 @@ For monorepo with multiple actions:
 | `repository-path` | Path to the repository root (defaults to current directory)                      | No       | `.`                       |
 | `action-pattern`  | Glob pattern to find action files                                                | No       | `{**/,}action.{yml,yaml}` |
 | `docs-pattern`    | Glob pattern to find documentation files                                         | No       | `**/*.md`                 |
+| `version`         | Comma/newline-separated list of allowed versions for action references           | No       | *(version checking skipped)* |
 
 ## Outputs
 
