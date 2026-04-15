@@ -26,6 +26,11 @@ inputs:
   docs-pattern:
     type: string
 
+  # One or more allowed versions for action references in examples
+  # Accepts comma and/or newline-separated version strings
+  version:
+    type: string
+
 # Validate outputs
 outputs:
   # Number of errors found
