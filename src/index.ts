@@ -80,7 +80,18 @@ export async function run(): Promise<void> {
     )
   } else {
     allowedVersions = parseVersions(versionInput)
-    core.info(`Checking action versions against: ${allowedVersions.join(', ')}`)
+
+    if (allowedVersions.length === 0) {
+      core.warning(
+        'The `version` input contained only whitespace and/or separators. ' +
+          'Version checking is skipped. Set the `version` input to one or more ' +
+          'versions to validate that examples use the correct version.'
+      )
+    } else {
+      core.info(
+        `Checking action versions against: ${allowedVersions.join(', ')}`
+      )
+    }
   }
 
   core.info(`Repository: ${repository}`)
