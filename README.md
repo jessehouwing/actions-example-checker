@@ -28,7 +28,7 @@ A GitHub Action that validates examples in documentation against your action's s
 <!-- start usage -->
 
 ```yaml
-- uses: jessehouwing/actions-example-checker@v0.0.7
+- uses: jessehouwing/actions-example-checker@v0.0.8
   with:
     # GitHub token for API access to check fork relationships. When provided,
     # the action will detect if the repository is a fork and allow examples to
@@ -400,7 +400,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: jessehouwing/actions-example-checker@v0.0.7
+      - uses: jessehouwing/actions-example-checker@v0.0.8
 ```
 
 ### Advanced Examples
@@ -410,7 +410,7 @@ jobs:
 Validate only specific documentation:
 
 ```yaml
-- uses: jessehouwing/actions-example-checker@v0.0.7
+- uses: jessehouwing/actions-example-checker@v0.0.8
   with:
     docs-pattern: 'docs/**/*.md'
     action-pattern: 'action.yml'
@@ -421,7 +421,7 @@ Validate only specific documentation:
 For forked repositories, enable automatic parent detection:
 
 ```yaml
-- uses: jessehouwing/actions-example-checker@v0.0.7
+- uses: jessehouwing/actions-example-checker@v0.0.8
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -442,7 +442,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: jessehouwing/actions-example-checker@v0.0.7
+      - uses: jessehouwing/actions-example-checker@v0.0.8
         with:
           version: ${{ github.ref_name }} # e.g. v1.2.3
 ```
@@ -458,7 +458,7 @@ To also accept the major (`v1`) and minor (`v1.2`) aliases that many actions pub
     echo "minor=${full%.*}"  >> "$GITHUB_OUTPUT"   # v1.2
     echo "major=${full%%.*}" >> "$GITHUB_OUTPUT"   # v1
 
-- uses: jessehouwing/actions-example-checker@v0.0.7
+- uses: jessehouwing/actions-example-checker@v0.0.8
   with:
     version: |
       ${{ github.ref_name }}
@@ -479,7 +479,7 @@ To also accept the major (`v1`) and minor (`v1.2`) aliases that many actions pub
     "minor=$minor" >> $Env:GITHUB_OUTPUT
     "major=$major" >> $Env:GITHUB_OUTPUT
 
-- uses: jessehouwing/actions-example-checker@v0.0.7
+- uses: jessehouwing/actions-example-checker@v0.0.8
   with:
     version: |
       ${{ github.ref_name }}
@@ -494,7 +494,7 @@ For more detailed examples see [`docs/extract-version-from-ref.md`](docs/extract
 For monorepo with multiple actions:
 
 ```yaml
-- uses: jessehouwing/actions-example-checker@v0.0.7
+- uses: jessehouwing/actions-example-checker@v0.0.8
   with:
     action-pattern: 'actions/**/action.{yml,yaml}'
     docs-pattern: 'actions/**/*.md'
@@ -606,7 +606,7 @@ Output validation example:
 This action validates its own documentation! Here's a valid example:
 
 ```yaml
-- uses: jessehouwing/actions-example-checker@v0.0.7
+- uses: jessehouwing/actions-example-checker@v0.0.8
   with:
     repository: jessehouwing/actions-example-checker
     repository-path: .
