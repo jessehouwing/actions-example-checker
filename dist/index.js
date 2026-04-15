@@ -40449,6 +40449,19 @@ function getProxyFetch(destinationUrl) {
 function getApiBaseUrl() {
     return process.env['GITHUB_API_URL'] || 'https://api.github.com';
 }
+function getUserAgentWithOrchestrationId(baseUserAgent) {
+    var _a;
+    const orchId = (_a = process.env['ACTIONS_ORCHESTRATION_ID']) === null || _a === void 0 ? void 0 : _a.trim();
+    if (orchId) {
+        const sanitizedId = orchId.replace(/[^a-z0-9_.-]/gi, '_');
+        const tag = `actions_orchestration_id/${sanitizedId}`;
+        if (baseUserAgent === null || baseUserAgent === void 0 ? void 0 : baseUserAgent.includes(tag))
+            return baseUserAgent;
+        const ua = baseUserAgent ? `${baseUserAgent} ` : '';
+        return `${ua}${tag}`;
+    }
+    return baseUserAgent;
+}
 
 function getUserAgent() {
   if (typeof navigator === "object" && "userAgent" in navigator) {
@@ -44221,6 +44234,11 @@ function getOctokitOptions(token, options) {
     if (auth) {
         opts.auth = auth;
     }
+    // Orchestration ID
+    const userAgent = getUserAgentWithOrchestrationId(opts.userAgent);
+    if (userAgent) {
+        opts.userAgent = userAgent;
+    }
     return opts;
 }
 
@@ -44716,6 +44734,40 @@ function extractActionReference(usesValue, schemas) {
     return undefined;
 }
 /**
+ * Validate the version of an action reference against a list of allowed versions
+ */
+function validateActionVersion(step, allowedVersions, blockStartLine) {
+    if (allowedVersions.length === 0) {
+        return [];
+    }
+    // Extract version from uses string (e.g., "owner/repo@v1.2.3" -> "v1.2.3")
+    // Use the known action reference prefix when available so refs containing '@'
+    // (for example, "owner/repo@v1@beta") are preserved correctly.
+    const actionPrefix = `${step.actionReference}@`;
+    let version;
+    if (step.uses.startsWith(actionPrefix)) {
+        version = step.uses.substring(actionPrefix.length);
+    }
+    else {
+        const atIndex = step.uses.indexOf('@');
+        if (atIndex === -1) {
+            return [];
+        }
+        version = step.uses.substring(atIndex + 1);
+    }
+    const line = blockStartLine + step.lineInBlock - 1;
+    if (!allowedVersions.includes(version)) {
+        return [
+            {
+                message: `Action '${step.uses}' uses version '${version}', but expected one of [${allowedVersions.join(', ')}]`,
+                line,
+                column: 1,
+            },
+        ];
+    }
+    return [];
+}
+/**
  * Validate a step against an action schema
  */
 function validateStep(step, schema, blockStartLine) {
@@ -45050,6 +45102,16 @@ async function detectRepositoryName() {
     return '';
 }
 /**
+ * Parse a version input string into a list of version strings.
+ * Accepts comma and/or newline-separated values.
+ */
+function parseVersions(input) {
+    return input
+        .split(/[\s,]+/)
+        .map((v) => v.trim())
+        .filter((v) => v.length > 0);
+}
+/**
  * Main runner function
  */
 async function run() {
@@ -45062,6 +45124,24 @@ async function run() {
     const repositoryPath = getInput('repository-path') || '.';
     const actionPattern = getInput('action-pattern') || '{**/,}action.{yml,yaml}';
     const docsPattern = getInput('docs-pattern') || '**/*.md';
+    // Resolve allowed versions for version checking
+    const versionInput = getInput('version');
+    let allowedVersions = [];
+    if (!versionInput) {
+        info('No version specified. Version checking is skipped. ' +
+            'Set the `version` input to validate that examples use the correct version.');
+    }
+    else {
+        allowedVersions = parseVersions(versionInput);
+        if (allowedVersions.length === 0) {
+            warning('The `version` input contained only whitespace and/or separators. ' +
+                'Version checking is skipped. Set the `version` input to one or more ' +
+                'versions to validate that examples use the correct version.');
+        }
+        else {
+            info(`Checking action versions against: ${allowedVersions.join(', ')}`);
+        }
+    }
     info(`Repository: ${repository}`);
     info(`Repository path: ${repositoryPath}`);
     info(`Action pattern: ${actionPattern}`);
@@ -45129,6 +45209,16 @@ async function run() {
                             startColumn: error$1.column,
                         });
                     }
+                    // Validate action version
+                    const versionErrors = validateActionVersion(step, allowedVersions, block.contentStartLine);
+                    for (const error$1 of versionErrors) {
+                        totalErrors++;
+                        error(error$1.message, {
+                            file: schema.sourceFile,
+                            startLine: error$1.line,
+                            startColumn: error$1.column,
+                        });
+                    }
                 }
                 // Validate output references in the description block
                 const outputErrors = validateOutputReferences(block.text, steps, schemas, block.contentStartLine);
@@ -45166,6 +45256,16 @@ async function run() {
                     }
                     const errors = validateStep(step, schema, block.contentStartLine);
                     for (const error$1 of errors) {
+                        totalErrors++;
+                        error(error$1.message, {
+                            file: relativeFilePath,
+                            startLine: error$1.line,
+                            startColumn: error$1.column,
+                        });
+                    }
+                    // Validate action version
+                    const versionErrors = validateActionVersion(step, allowedVersions, block.contentStartLine);
+                    for (const error$1 of versionErrors) {
                         totalErrors++;
                         error(error$1.message, {
                             file: relativeFilePath,

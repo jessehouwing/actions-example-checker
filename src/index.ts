@@ -12,6 +12,7 @@ import {
   findReferencedSteps,
   validateStep,
   validateOutputReferences,
+  validateActionVersion,
 } from './validator.js'
 
 const execAsync = promisify(exec)
@@ -40,6 +41,17 @@ async function detectRepositoryName(): Promise<string> {
 }
 
 /**
+ * Parse a version input string into a list of version strings.
+ * Accepts comma and/or newline-separated values.
+ */
+export function parseVersions(input: string): string[] {
+  return input
+    .split(/[\s,]+/)
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0)
+}
+
+/**
  * Main runner function
  */
 export async function run(): Promise<void> {
@@ -56,6 +68,31 @@ export async function run(): Promise<void> {
   const actionPattern =
     core.getInput('action-pattern') || '{**/,}action.{yml,yaml}'
   const docsPattern = core.getInput('docs-pattern') || '**/*.md'
+
+  // Resolve allowed versions for version checking
+  const versionInput = core.getInput('version')
+  let allowedVersions: string[] = []
+
+  if (!versionInput) {
+    core.info(
+      'No version specified. Version checking is skipped. ' +
+        'Set the `version` input to validate that examples use the correct version.'
+    )
+  } else {
+    allowedVersions = parseVersions(versionInput)
+
+    if (allowedVersions.length === 0) {
+      core.warning(
+        'The `version` input contained only whitespace and/or separators. ' +
+          'Version checking is skipped. Set the `version` input to one or more ' +
+          'versions to validate that examples use the correct version.'
+      )
+    } else {
+      core.info(
+        `Checking action versions against: ${allowedVersions.join(', ')}`
+      )
+    }
+  }
 
   core.info(`Repository: ${repository}`)
   core.info(`Repository path: ${repositoryPath}`)
@@ -148,6 +185,21 @@ export async function run(): Promise<void> {
               startColumn: error.column,
             })
           }
+
+          // Validate action version
+          const versionErrors = validateActionVersion(
+            step,
+            allowedVersions,
+            block.contentStartLine
+          )
+          for (const error of versionErrors) {
+            totalErrors++
+            core.error(error.message, {
+              file: schema.sourceFile,
+              startLine: error.line,
+              startColumn: error.column,
+            })
+          }
         }
 
         // Validate output references in the description block
@@ -199,6 +251,21 @@ export async function run(): Promise<void> {
           const errors = validateStep(step, schema, block.contentStartLine)
 
           for (const error of errors) {
+            totalErrors++
+            core.error(error.message, {
+              file: relativeFilePath,
+              startLine: error.line,
+              startColumn: error.column,
+            })
+          }
+
+          // Validate action version
+          const versionErrors = validateActionVersion(
+            step,
+            allowedVersions,
+            block.contentStartLine
+          )
+          for (const error of versionErrors) {
             totalErrors++
             core.error(error.message, {
               file: relativeFilePath,

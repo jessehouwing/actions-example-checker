@@ -13,6 +13,13 @@ inputs:
       reference either the fork name or the upstream parent name.
     required: false
     default: ${{ github.token }}
+  version:
+    description: >
+      One or more versions that action references in examples must use.
+      Accepts comma and/or newline-separated version strings (e.g. "v1, v1.2,
+      v1.2.3"). When not provided, version checking is skipped and a warning is
+      emitted.
+    required: false
   repository:
     description: >
       Repository name in 'owner/repo' format. Used to match action references
