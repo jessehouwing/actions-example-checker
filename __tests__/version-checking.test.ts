@@ -57,6 +57,14 @@ v2, v2.1, v2.1.7`
   it('should filter out empty entries', () => {
     expect(parseVersions('v1,,v2\n\nv3')).toEqual(['v1', 'v2', 'v3'])
   })
+
+  it('should parse space-separated versions (YAML plain scalar collapses newlines to spaces)', () => {
+    // YAML plain scalars collapse newlines to spaces, e.g.:
+    //   version: v0, v0.0
+    //     ${{ steps.version.outputs.tag }}
+    // becomes "v0, v0.0 v0.0.7" after template substitution
+    expect(parseVersions('v0, v0.0 v0.0.7')).toEqual(['v0', 'v0.0', 'v0.0.7'])
+  })
 })
 
 describe('validateActionVersion', () => {

@@ -45107,7 +45107,7 @@ async function detectRepositoryName() {
  */
 function parseVersions(input) {
     return input
-        .split(/[\n,]/)
+        .split(/[\s,]+/)
         .map((v) => v.trim())
         .filter((v) => v.length > 0);
 }

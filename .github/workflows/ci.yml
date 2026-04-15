@@ -75,5 +75,7 @@ jobs:
         uses: ./
         with:
           repository-path: .
-          version: v0, v0.0
+          version: |
+            v0
+            v0.0
             ${{ steps.version.outputs.tag }}
