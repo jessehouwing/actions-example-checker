@@ -32,7 +32,7 @@ jobs:
           echo "minor=${full%.*}"  >> "$GITHUB_OUTPUT"  # v1.2
           echo "major=${full%%.*}" >> "$GITHUB_OUTPUT"  # v1
 
-      - uses: jessehouwing/actions-example-checker@v1
+      - uses: jessehouwing/actions-example-checker@v0.0.7
         with:
           version: |
             ${{ github.ref_name }}
@@ -73,7 +73,7 @@ jobs:
           "minor=$minor" >> $Env:GITHUB_OUTPUT
           "major=$major" >> $Env:GITHUB_OUTPUT
 
-      - uses: jessehouwing/actions-example-checker@v1
+      - uses: jessehouwing/actions-example-checker@v0.0.7
         with:
           version: |
             ${{ github.ref_name }}
@@ -111,7 +111,7 @@ jobs:
           echo "minor=${full%.*}"  >> "$GITHUB_OUTPUT"
           echo "major=${full%%.*}" >> "$GITHUB_OUTPUT"
 
-      - uses: jessehouwing/actions-example-checker@v1
+      - uses: jessehouwing/actions-example-checker@v0.0.7
         with:
           # Validate that docs examples reference any of the three published tags
           version: |
@@ -175,7 +175,7 @@ jobs:
           fi
           echo "tag=$latest" >> "$GITHUB_OUTPUT"
 
-      - uses: jessehouwing/actions-example-checker@v1
+      - uses: jessehouwing/actions-example-checker@v0.0.7
         with:
           version: ${{ steps.version.outputs.tag }}
 ```
@@ -197,7 +197,7 @@ jobs:
             | sort -V | tail -n1)
           echo "tag=$latest" >> "$GITHUB_OUTPUT"
 
-      - uses: jessehouwing/actions-example-checker@v1
+      - uses: jessehouwing/actions-example-checker@v0.0.7
         with:
           version: ${{ steps.version.outputs.tag }}
 ```
