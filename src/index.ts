@@ -12,6 +12,7 @@ import {
   findReferencedSteps,
   validateStep,
   validateOutputReferences,
+  validateActionVersion,
 } from './validator.js'
 
 const execAsync = promisify(exec)
@@ -40,6 +41,17 @@ async function detectRepositoryName(): Promise<string> {
 }
 
 /**
+ * Parse a version input string into a list of version strings.
+ * Accepts comma and/or newline-separated values.
+ */
+export function parseVersions(input: string): string[] {
+  return input
+    .split(/[\n,]/)
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0)
+}
+
+/**
  * Main runner function
  */
 export async function run(): Promise<void> {
@@ -56,6 +68,30 @@ export async function run(): Promise<void> {
   const actionPattern =
     core.getInput('action-pattern') || '{**/,}action.{yml,yaml}'
   const docsPattern = core.getInput('docs-pattern') || '**/*.md'
+
+  // Resolve allowed versions for version checking
+  const versionInput = core.getInput('version')
+  let allowedVersions: string[] = []
+
+  if (!versionInput) {
+    core.warning(
+      'No version specified. Version checking is skipped. ' +
+        'Set the `version` input to validate that examples use the correct version.'
+    )
+  } else if (versionInput.trim().toLowerCase() === 'auto') {
+    const refName = process.env.GITHUB_REF_NAME || ''
+    if (refName) {
+      allowedVersions = [refName]
+      core.info(`Auto-detected version from GITHUB_REF_NAME: ${refName}`)
+    } else {
+      core.warning(
+        'Auto version detection failed: GITHUB_REF_NAME environment variable is not set'
+      )
+    }
+  } else {
+    allowedVersions = parseVersions(versionInput)
+    core.info(`Checking action versions against: ${allowedVersions.join(', ')}`)
+  }
 
   core.info(`Repository: ${repository}`)
   core.info(`Repository path: ${repositoryPath}`)
@@ -148,6 +184,21 @@ export async function run(): Promise<void> {
               startColumn: error.column,
             })
           }
+
+          // Validate action version
+          const versionErrors = validateActionVersion(
+            step,
+            allowedVersions,
+            block.contentStartLine
+          )
+          for (const error of versionErrors) {
+            totalErrors++
+            core.error(error.message, {
+              file: schema.sourceFile,
+              startLine: error.line,
+              startColumn: error.column,
+            })
+          }
         }
 
         // Validate output references in the description block
@@ -199,6 +250,21 @@ export async function run(): Promise<void> {
           const errors = validateStep(step, schema, block.contentStartLine)
 
           for (const error of errors) {
+            totalErrors++
+            core.error(error.message, {
+              file: relativeFilePath,
+              startLine: error.line,
+              startColumn: error.column,
+            })
+          }
+
+          // Validate action version
+          const versionErrors = validateActionVersion(
+            step,
+            allowedVersions,
+            block.contentStartLine
+          )
+          for (const error of versionErrors) {
             totalErrors++
             core.error(error.message, {
               file: relativeFilePath,
