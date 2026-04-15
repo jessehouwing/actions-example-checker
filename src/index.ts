@@ -74,7 +74,7 @@ export async function run(): Promise<void> {
   let allowedVersions: string[] = []
 
   if (!versionInput) {
-    core.warning(
+    core.info(
       'No version specified. Version checking is skipped. ' +
         'Set the `version` input to validate that examples use the correct version.'
     )
