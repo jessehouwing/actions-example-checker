@@ -41,7 +41,7 @@
     "@actions/core": "^3.0.1",
     "@actions/github": "^9.1.1",
     "@actions/glob": "^0.7.0",
-    "yaml": "^2.8.3"
+    "yaml": "^2.8.4"
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.5",
@@ -69,6 +69,6 @@
     "typescript-eslint": "^8.59.1"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.60.2"
+    "@rollup/rollup-linux-x64-gnu": "^4.60.3"
   }
 }
