@@ -70,5 +70,10 @@
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "^4.63.1"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree@6.21.0": {
+      "minimatch": "^9.0.7"
+    }
   }
 }
