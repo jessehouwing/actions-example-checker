@@ -309,15 +309,15 @@ The `separators` field accepts:
 All these are equivalent for a single comma separator:
 
 ```yaml
-separators: ','      # quoted string (required for comma)
-separators: [',']    # single-element array
+separators: ',' # quoted string (required for comma)
+separators: [','] # single-element array
 ```
 
 For characters that aren't special in YAML, quotes are optional:
 
 ```yaml
-separators: ;        # unquoted (works for semicolon)
-separators: ';'      # quoted (also works)
+separators: ; # unquoted (works for semicolon)
+separators: ';' # quoted (also works)
 ```
 
 **Supported separators:**

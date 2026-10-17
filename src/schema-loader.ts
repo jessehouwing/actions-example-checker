@@ -320,11 +320,7 @@ export function resolveTypeDefinition(
     // Base type is a base type, start with it
     resolvedBase = {
       type: baseTypeDef.type as
-        | 'boolean'
-        | 'number'
-        | 'string'
-        | 'choice'
-        | 'any',
+        'boolean' | 'number' | 'string' | 'choice' | 'any',
     }
   }
 
