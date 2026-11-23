@@ -1,0 +1,8 @@
+# Workflow actions are pinned by the repository's actions.lock instead of SHA
+# refs, and Dependabot's three-day cooldown is intentionally shorter than
+# zizmor's default recommendation.
+rules:
+  unpinned-uses:
+    disable: true
+  dependabot-cooldown:
+    disable: true
