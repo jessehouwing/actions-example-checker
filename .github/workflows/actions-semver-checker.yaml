@@ -22,11 +22,11 @@ jobs:
 
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
-      - uses: jessehouwing/actions-semver-checker@1d5f1c217079bb5366ed9b12025fcece100f6bc5 # v2.1.0
+      - uses: jessehouwing/actions-semver-checker@550e3a35452defcedbdc51aca36487c3bfee0696 # v2.1.1
         with:
           check-minor-version: error
           check-release-immutability: true

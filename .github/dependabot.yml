@@ -18,6 +18,10 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    ignore:
+      # Match the GitHub Actions node24 runtime in action.yaml.
+      - dependency-name: '@types/node'
+        versions: ['>=25.0.0']
     groups:
       ESLint:
         patterns:
