@@ -69,7 +69,7 @@
     "typescript-eslint": "^8.68.0"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.63.1"
+    "@rollup/rollup-linux-x64-gnu": "^4.64.9"
   },
   "overrides": {
     "@typescript-eslint/typescript-estree@6.21.0": {
