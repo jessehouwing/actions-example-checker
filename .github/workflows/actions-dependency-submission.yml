@@ -18,15 +18,15 @@ jobs:
 
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
+        uses: step-security/harden-runner@v2.23.0
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: jessehouwing/actions-dependency-submission@811981eec3c108f41783f194522fde91a34301a4 # v2.0.2
+      - uses: actions/checkout@v7.0.1
+      - uses: jessehouwing/actions-dependency-submission@v2.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # 5.0.1
+      - uses: actions/dependency-review-action@v5.0.1
         if: github.event_name == 'pull_request'
         with:
           retry-on-snapshot-warnings: true
