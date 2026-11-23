@@ -31,6 +31,8 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    cooldown:
+      default-days: 3
     ignore:
       # Match the GitHub Actions node24 runtime in action.yaml.
       - dependency-name: '@types/node'
@@ -53,4 +55,5 @@ updates:
       npm-production:
         dependency-type: production
         update-types:
+          - minor
           - patch
